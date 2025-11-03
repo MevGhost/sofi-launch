@@ -1,0 +1,455 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.createSecurityMiddleware = exports.apiSecurityHeaders = exports.trackFailedAttempt = exports.ipBlocking = exports.sqlInjectionProtection = exports.xssProtection = exports.createRateLimiters = exports.createHelmetMiddleware = exports.createCorsMiddleware = void 0;
+const helmet_1 = __importDefault(require("helmet"));
+const cors_1 = __importDefault(require("cors"));
+const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
+const rate_limit_redis_1 = __importDefault(require("rate-limit-redis"));
+const redis_1 = require("redis");
+const logger_enhanced_service_1 = require("../services/logger-enhanced.service");
+const logger = (0, logger_enhanced_service_1.createLogger)('Security');
+const getSecurityConfig = () => {
+    const env = process.env['NODE_ENV'] || 'development';
+    switch (env) {
+        case 'production':
+            return {
+                cors: {
+                    origins: (process.env['ALLOWED_ORIGINS'] || '').split(',').filter(Boolean),
+                    credentials: true,
+                    maxAge: 86400, // 24 hours
+                },
+                rateLimit: {
+                    windowMs: 15 * 60 * 1000, // 15 minutes
+                    max: 100,
+                    standardHeaders: true,
+                    legacyHeaders: false,
+                },
+                helmet: {
+                    contentSecurityPolicy: {
+                        directives: {
+                            defaultSrc: ["'self'"],
+                            styleSrc: ["'self'", "'unsafe-inline'"],
+                            scriptSrc: ["'self'"],
+                            imgSrc: ["'self'", 'data:', 'https:'],
+                            connectSrc: ["'self'"],
+                            fontSrc: ["'self'"],
+                            objectSrc: ["'none'"],
+                            mediaSrc: ["'self'"],
+                            frameSrc: ["'none'"],
+                            upgradeInsecureRequests: [],
+                        },
+                    },
+                    hsts: {
+                        maxAge: 31536000,
+                        includeSubDomains: true,
+                        preload: true,
+                    },
+                },
+            };
+        case 'test':
+            return {
+                cors: {
+                    origins: ['http://localhost:3000', 'http://localhost:3001'],
+                    credentials: true,
+                    maxAge: 3600,
+                },
+                rateLimit: {
+                    windowMs: 1 * 60 * 1000,
+                    max: 1000,
+                    standardHeaders: false,
+                    legacyHeaders: false,
+                },
+                helmet: {
+                    contentSecurityPolicy: false,
+                    hsts: {
+                        maxAge: 0,
+                        includeSubDomains: false,
+                        preload: false,
+                    },
+                },
+            };
+        default: // development
+            return {
+                cors: {
+                    origins: ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000'],
+                    credentials: true,
+                    maxAge: 3600,
+                },
+                rateLimit: {
+                    windowMs: 1 * 60 * 1000,
+                    max: 1000,
+                    standardHeaders: false,
+                    legacyHeaders: false,
+                },
+                helmet: {
+                    contentSecurityPolicy: false,
+                    hsts: {
+                        maxAge: 0,
+                        includeSubDomains: false,
+                        preload: false,
+                    },
+                },
+            };
+    }
+};
+// Create Redis client for rate limiting (if available)
+const createRedisClient = async () => {
+    if (process.env['REDIS_URL'] && process.env['NODE_ENV'] === 'production') {
+        try {
+            const client = (0, redis_1.createClient)({
+                url: process.env['REDIS_URL'],
+                socket: {
+                    reconnectStrategy: (retries) => {
+                        if (retries > 10) {
+                            logger.error('Redis connection failed after 10 retries');
+                            return new Error('Redis connection failed');
+                        }
+                        return Math.min(retries * 100, 3000);
+                    },
+                },
+            });
+            client.on('error', (err) => {
+                logger.error('Redis client error', err);
+            });
+            client.on('connect', () => {
+                logger.info('Redis connected for rate limiting');
+            });
+            await client.connect();
+            return client;
+        }
+        catch (error) {
+            logger.warn('Failed to connect to Redis, using memory store for rate limiting', error);
+            return null;
+        }
+    }
+    return null;
+};
+// CORS configuration
+const createCorsMiddleware = () => {
+    const config = getSecurityConfig();
+    return (0, cors_1.default)({
+        origin: (origin, callback) => {
+            // Allow requests with no origin (mobile apps, Postman, etc.)
+            if (!origin && process.env['NODE_ENV'] === 'development') {
+                return callback(null, true);
+            }
+            // Check if origin is allowed
+            if (!origin || config.cors.origins.length === 0 || config.cors.origins.includes(origin)) {
+                callback(null, true);
+            }
+            else {
+                logger.warn('CORS blocked request', { origin, allowedOrigins: config.cors.origins });
+                callback(new Error('Not allowed by CORS'));
+            }
+        },
+        credentials: config.cors.credentials,
+        maxAge: config.cors.maxAge,
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+        allowedHeaders: [
+            'Content-Type',
+            'Authorization',
+            'X-Chain',
+            'X-Chain-Type',
+            'X-Request-Id',
+            'X-API-Key',
+        ],
+        exposedHeaders: [
+            'X-Request-Id',
+            'X-RateLimit-Limit',
+            'X-RateLimit-Remaining',
+            'X-RateLimit-Reset',
+        ],
+    });
+};
+exports.createCorsMiddleware = createCorsMiddleware;
+// Helmet security headers
+const createHelmetMiddleware = () => {
+    const config = getSecurityConfig();
+    return (0, helmet_1.default)({
+        contentSecurityPolicy: config.helmet.contentSecurityPolicy,
+        hsts: config.helmet.hsts,
+        noSniff: true,
+        xssFilter: true,
+        referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+        frameguard: { action: 'deny' },
+        permittedCrossDomainPolicies: false,
+        hidePoweredBy: true,
+        dnsPrefetchControl: { allow: false },
+        ieNoOpen: true,
+        originAgentCluster: true,
+        crossOriginEmbedderPolicy: process.env['NODE_ENV'] === 'production',
+        crossOriginOpenerPolicy: { policy: 'same-origin' },
+        crossOriginResourcePolicy: { policy: 'same-origin' },
+    });
+};
+exports.createHelmetMiddleware = createHelmetMiddleware;
+// Rate limiting configurations
+const createRateLimiters = async () => {
+    const config = getSecurityConfig();
+    const redisClient = await createRedisClient();
+    // Create store (Redis or Memory)
+    const createStore = () => {
+        if (redisClient) {
+            return new rate_limit_redis_1.default({
+                sendCommand: (...args) => redisClient.sendCommand(args),
+                prefix: 'rl:',
+            });
+        }
+        return undefined; // Use default memory store
+    };
+    // General API rate limiter
+    const apiLimiter = (0, express_rate_limit_1.default)({
+        windowMs: config.rateLimit.windowMs,
+        max: config.rateLimit.max,
+        standardHeaders: config.rateLimit.standardHeaders,
+        legacyHeaders: config.rateLimit.legacyHeaders,
+        store: createStore(),
+        message: 'Too many requests, please try again later.',
+        handler: (req, res) => {
+            logger.warn('Rate limit exceeded', {
+                ip: req.ip,
+                path: req.path,
+                method: req.method,
+            });
+            res.status(429).json({
+                success: false,
+                error: {
+                    code: 'RATE_LIMITED',
+                    message: 'Too many requests, please try again later.',
+                },
+            });
+        },
+        skip: (req) => {
+            // Skip rate limiting for health checks
+            return req.path === '/health' || req.path.startsWith('/health/');
+        },
+    });
+    // Strict rate limiter for auth endpoints
+    const authLimiter = (0, express_rate_limit_1.default)({
+        windowMs: 15 * 60 * 1000, // 15 minutes
+        max: 5, // 5 requests per window
+        standardHeaders: true,
+        legacyHeaders: false,
+        store: createStore(),
+        message: 'Too many authentication attempts, please try again later.',
+        skipSuccessfulRequests: true, // Don't count successful requests
+    });
+    // Moderate rate limiter for write operations
+    const writeLimiter = (0, express_rate_limit_1.default)({
+        windowMs: 1 * 60 * 1000, // 1 minute
+        max: 30, // 30 write operations per minute
+        standardHeaders: true,
+        legacyHeaders: false,
+        store: createStore(),
+        message: 'Too many write operations, please slow down.',
+    });
+    // Lenient rate limiter for read operations
+    const readLimiter = (0, express_rate_limit_1.default)({
+        windowMs: 1 * 60 * 1000, // 1 minute
+        max: 200, // 200 read operations per minute
+        standardHeaders: true,
+        legacyHeaders: false,
+        store: createStore(),
+        message: 'Too many read operations, please slow down.',
+    });
+    // File upload rate limiter
+    const uploadLimiter = (0, express_rate_limit_1.default)({
+        windowMs: 5 * 60 * 1000, // 5 minutes
+        max: 10, // 10 uploads per 5 minutes
+        standardHeaders: true,
+        legacyHeaders: false,
+        store: createStore(),
+        message: 'Too many file uploads, please try again later.',
+    });
+    return {
+        api: apiLimiter,
+        auth: authLimiter,
+        write: writeLimiter,
+        read: readLimiter,
+        upload: uploadLimiter,
+    };
+};
+exports.createRateLimiters = createRateLimiters;
+// XSS Protection middleware
+const xssProtection = (req, res, next) => {
+    // Set additional XSS protection headers
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    // Sanitize common injection points
+    const sanitizeValue = (value) => {
+        if (typeof value === 'string') {
+            // Remove script tags and event handlers
+            return value
+                .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+                .replace(/on\w+\s*=\s*"[^"]*"/gi, '')
+                .replace(/on\w+\s*=\s*'[^']*'/gi, '')
+                .replace(/javascript:/gi, '');
+        }
+        return value;
+    };
+    // Sanitize query parameters
+    for (const key in req.query) {
+        req.query[key] = sanitizeValue(req.query[key]);
+    }
+    // Sanitize body (for non-file uploads)
+    if (req.body && !req.is('multipart/form-data')) {
+        const sanitizeObject = (obj) => {
+            if (typeof obj === 'object' && obj !== null) {
+                for (const key in obj) {
+                    if (typeof obj[key] === 'string') {
+                        obj[key] = sanitizeValue(obj[key]);
+                    }
+                    else if (typeof obj[key] === 'object') {
+                        obj[key] = sanitizeObject(obj[key]);
+                    }
+                }
+            }
+            return obj;
+        };
+        req.body = sanitizeObject(req.body);
+    }
+    next();
+};
+exports.xssProtection = xssProtection;
+// SQL Injection Protection middleware
+const sqlInjectionProtection = (req, res, next) => {
+    const sqlPatterns = [
+        /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|CREATE|ALTER|EXEC|EXECUTE)\b)/gi,
+        /(--|\||\/\*|\*\/|xp_|sp_|0x)/gi,
+    ];
+    const checkForSQLInjection = (value) => {
+        if (typeof value === 'string') {
+            for (const pattern of sqlPatterns) {
+                if (pattern.test(value)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    };
+    // Check all input sources
+    const checkObject = (obj, source) => {
+        for (const key in obj) {
+            const value = obj[key];
+            if (checkForSQLInjection(value)) {
+                logger.warn('Potential SQL injection attempt', {
+                    source,
+                    key,
+                    ip: req.ip,
+                    path: req.path,
+                    method: req.method,
+                });
+                return true;
+            }
+            if (typeof value === 'object' && value !== null) {
+                if (checkObject(value, `${source}.${key}`)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    };
+    // Check query, params, and body
+    if (checkObject(req.query, 'query') ||
+        checkObject(req.params, 'params') ||
+        (req.body && checkObject(req.body, 'body'))) {
+        res.status(400).json({
+            success: false,
+            error: {
+                code: 'INVALID_INPUT',
+                message: 'Invalid characters detected in request',
+            },
+        });
+        return;
+    }
+    next();
+};
+exports.sqlInjectionProtection = sqlInjectionProtection;
+// IP-based blocking middleware
+const blockedIPs = new Set();
+const ipAttempts = new Map();
+const ipBlocking = (req, res, next) => {
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    // Check if IP is blocked
+    if (blockedIPs.has(ip)) {
+        logger.warn('Blocked IP attempted access', { ip, path: req.path });
+        res.status(403).json({
+            success: false,
+            error: {
+                code: 'FORBIDDEN',
+                message: 'Access denied',
+            },
+        });
+        return;
+    }
+    // Track failed attempts (this should be called from auth failures)
+    const attempts = ipAttempts.get(ip) || 0;
+    if (attempts > 10) {
+        blockedIPs.add(ip);
+        logger.warn('IP blocked due to excessive failures', { ip });
+        // Auto-unblock after 1 hour
+        setTimeout(() => {
+            blockedIPs.delete(ip);
+            ipAttempts.delete(ip);
+            logger.info('IP unblocked', { ip });
+        }, 3600000);
+        res.status(403).json({
+            success: false,
+            error: {
+                code: 'FORBIDDEN',
+                message: 'Too many failed attempts. Access blocked.',
+            },
+        });
+        return;
+    }
+    next();
+};
+exports.ipBlocking = ipBlocking;
+const trackFailedAttempt = (ip) => {
+    const attempts = ipAttempts.get(ip) || 0;
+    ipAttempts.set(ip, attempts + 1);
+    // Clear attempts after 15 minutes
+    setTimeout(() => {
+        const currentAttempts = ipAttempts.get(ip) || 0;
+        if (currentAttempts > 0) {
+            ipAttempts.set(ip, currentAttempts - 1);
+        }
+    }, 900000);
+};
+exports.trackFailedAttempt = trackFailedAttempt;
+// Security headers for API responses
+const apiSecurityHeaders = (req, res, next) => {
+    // Prevent caching of sensitive data
+    if (req.path.includes('/api/auth') || req.path.includes('/api/admin')) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        res.setHeader('Surrogate-Control', 'no-store');
+    }
+    // Add security headers
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+    next();
+};
+exports.apiSecurityHeaders = apiSecurityHeaders;
+// Combined security middleware
+const createSecurityMiddleware = async () => {
+    const rateLimiters = await (0, exports.createRateLimiters)();
+    return {
+        cors: (0, exports.createCorsMiddleware)(),
+        helmet: (0, exports.createHelmetMiddleware)(),
+        rateLimiters,
+        xssProtection: exports.xssProtection,
+        sqlInjectionProtection: exports.sqlInjectionProtection,
+        ipBlocking: exports.ipBlocking,
+        apiSecurityHeaders: exports.apiSecurityHeaders,
+    };
+};
+exports.createSecurityMiddleware = createSecurityMiddleware;
+exports.default = exports.createSecurityMiddleware;
+//# sourceMappingURL=security.config.js.map

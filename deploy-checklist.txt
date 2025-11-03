@@ -1,0 +1,34 @@
+# S4 Labs Deployment Checklist
+
+## Files Included:
+- All source code (src/, app/, public/)
+- Configuration files (next.config.js, tsconfig.json, tailwind.config.js, postcss.config.js)
+- Package files (package.json, package-lock.json)
+- Environment files (.env.example)
+- Deployment configs (ecosystem.config.js)
+- Sentry configs (sentry.*.config.ts, .sentryclirc)
+- Apache config (apache-config.conf)
+
+## Environment Variables to Set on Server:
+Copy .env.example to .env and fill in:
+- NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID (already set)
+- NEXT_PUBLIC_SENTRY_DSN (already set)
+- SENTRY_AUTH_TOKEN (already set)
+- SENTRY_ORG (already set)
+- SENTRY_PROJECT (already set)
+
+## Deployment Steps:
+1. Upload and extract archive: tar -xzf s4labs-deploy.tar.gz
+2. Install dependencies: npm ci --production=false
+3. Copy .env file: cp .env.example .env (then edit with your values)
+4. Build the app: npm run build
+5. Start with PM2: pm2 start ecosystem.config.js
+6. Configure Apache: sudo cp apache-config.conf /etc/apache2/sites-available/s4labs.conf
+7. Enable site: sudo a2ensite s4labs && sudo systemctl reload apache2
+
+## Verify Installation:
+- Check PM2: pm2 status
+- Check logs: pm2 logs s4labs
+- Test site: curl http://localhost:3000
+- Check Sentry: Errors should appear in dashboard
+- Check Plausible: Analytics should start tracking

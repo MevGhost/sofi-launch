@@ -1,0 +1,509 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String         @id @default(cuid())
+  address          String         @unique @db.VarChar(255)
+  nonce            String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  lastLogin        DateTime?
+  name             String?
+  email            String?        @unique
+  avatar           String?
+  bio              String?
+  department       String?
+  lastActive       DateTime       @default(now())
+  role             String         @default("team")
+  chainType        String         @default("evm")
+  activities       Activity[]
+  escrowsAsKol     Escrow[]       @relation("KolUser")
+  escrowsAsProject Escrow[]       @relation("ProjectUser")
+  notifications    Notification[]
+  settings         Settings?
+  verifications    Verification[]
+  tokens           Token[]
+  tokenHoldings    TokenHolder[]
+
+  @@index([address])
+  @@index([role])
+  @@index([email])
+  @@index([chainType])
+}
+
+model Escrow {
+  id                      String              @id @default(cuid())
+  contractAddress         String?             @db.VarChar(255)
+  factoryAddress          String?             @db.VarChar(255)
+  chainId                 String
+  blockNumber             BigInt?
+  transactionHash         String              @db.VarChar(255)
+  projectName             String
+  dealType                String
+  customDealType          String?
+  dealDescription         String
+  startDate               DateTime
+  endDate                 DateTime
+  projectAddress          String              @db.VarChar(255)
+  kolAddress              String              @db.VarChar(255)
+  tokenAddress            String              @db.VarChar(255)
+  tokenSymbol             String
+  tokenDecimals           Int
+  totalAmount             String
+  releasedAmount          String              @default("0")
+  status                  EscrowStatus        @default(ACTIVE)
+  requireVerification     Boolean             @default(false)
+  verificationMethod      VerificationMethod?
+  disputeResolutionMethod DisputeMethod?
+  arbitratorAddress       String?             @db.VarChar(255)
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+  completedAt             DateTime?
+  cancelledAt             DateTime?
+  claimedAmount           String              @default("0")
+  requirements            String[]
+  adminControlled         Boolean             @default(false)
+  chainData               Json?
+  chainEscrowId           String
+  lastSyncedAt            DateTime?
+  platformFeeBps          Int?
+  chain                   String?             @default("base-sepolia")
+  escrowTokenAccount      String?             @db.VarChar(255)
+  activities              Activity[]
+  disputes                Dispute[]
+  kolUser                 User                @relation("KolUser", fields: [kolAddress], references: [address])
+  projectUser             User                @relation("ProjectUser", fields: [projectAddress], references: [address])
+  milestones              Milestone[]
+  SyncLog                 SyncLog[]
+  verifications           Verification[]
+  verifiers               Verifier[]
+
+  @@unique([chainId, chainEscrowId])
+  @@unique([chain, contractAddress])
+  @@index([projectAddress])
+  @@index([kolAddress])
+  @@index([status])
+  @@index([chainId])
+  @@index([chain])
+  @@index([chainId, kolAddress])
+  @@index([chainId, projectAddress])
+  @@index([chainId, status])
+  @@index([lastSyncedAt])
+}
+
+model Milestone {
+  id                 String                @id @default(cuid())
+  escrowId           String
+  milestoneIndex     Int
+  title              String
+  description        String
+  amount             String
+  percentage         Float
+  releaseDate        DateTime
+  conditions         String[]
+  released           Boolean               @default(false)
+  verified           Boolean               @default(false)
+  releasedAt         DateTime?
+  verifiedAt         DateTime?
+  claimed            Boolean               @default(false)
+  claimedAt          DateTime?
+  updatedAt          DateTime              @default(now()) @updatedAt
+  verificationStatus SubmissionStatus?
+  escrow             Escrow                @relation(fields: [escrowId], references: [id], onDelete: Cascade)
+  submissions        MilestoneSubmission[]
+  verifications      Verification[]
+
+  @@unique([escrowId, milestoneIndex])
+  @@index([escrowId])
+  @@index([released])
+}
+
+model Verifier {
+  id           String         @id @default(cuid())
+  escrowId     String
+  address      String         @db.VarChar(255)
+  addedAt      DateTime       @default(now())
+  isActive     Boolean        @default(true)
+  Verification Verification[]
+  escrow       Escrow         @relation(fields: [escrowId], references: [id], onDelete: Cascade)
+
+  @@unique([escrowId, address])
+  @@index([escrowId])
+  @@index([address])
+}
+
+model Verification {
+  id              String             @id @default(cuid())
+  escrowId        String
+  milestoneId     String
+  verifierId      String
+  userAddress     String             @db.VarChar(255)
+  action          VerificationAction
+  signature       String?
+  transactionHash String?            @db.VarChar(255)
+  comment         String?
+  createdAt       DateTime           @default(now())
+  escrow          Escrow             @relation(fields: [escrowId], references: [id], onDelete: Cascade)
+  milestone       Milestone          @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  user            User               @relation(fields: [userAddress], references: [address])
+  Verifier        Verifier           @relation(fields: [verifierId], references: [id])
+
+  @@index([escrowId])
+  @@index([milestoneId])
+  @@index([userAddress])
+}
+
+model Dispute {
+  id          String        @id @default(cuid())
+  escrowId    String
+  disputeType DisputeType
+  raisedBy    String        @db.VarChar(255)
+  reason      String
+  evidence    Json?
+  status      DisputeStatus @default(OPEN)
+  resolution  String?
+  resolvedBy  String?       @db.VarChar(255)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  resolvedAt  DateTime?
+  escrow      Escrow        @relation(fields: [escrowId], references: [id], onDelete: Cascade)
+
+  @@index([escrowId])
+  @@index([status])
+}
+
+model Activity {
+  id          String   @id @default(cuid())
+  escrowId    String?
+  userAddress String   @db.VarChar(255)
+  action      String
+  details     Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+  chainId     String?
+  escrow      Escrow?  @relation(fields: [escrowId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userAddress], references: [address])
+
+  @@index([escrowId])
+  @@index([userAddress])
+  @@index([createdAt])
+  @@index([chainId])
+}
+
+model Settings {
+  id                   String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  adminAddresses       String[] @default([])
+  adminPin             String   @default("")
+  maintenanceMode      Boolean  @default(false)
+  announcement         String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  dailyReport          Boolean  @default(false)
+  defaultCurrency      String   @default("USDC")
+  disputeRaised        Boolean  @default(true)
+  emailNotifications   Boolean  @default(true)
+  escrowCompleted      Boolean  @default(true)
+  escrowCreated        Boolean  @default(true)
+  ipWhitelist          String   @default("")
+  maxEscrowAmount      String   @default("1000000")
+  maxLoginAttempts     String   @default("5")
+  minEscrowAmount      String   @default("100")
+  platformFee          String   @default("2.5")
+  platformName         String   @default("TokenFlow")
+  requireVerification  Boolean  @default(true)
+  sessionTimeout       String   @default("30")
+  twoFactorRequired    Boolean  @default(false)
+  userId               String   @unique
+  verificationRequired Boolean  @default(true)
+  user                 User     @relation(fields: [userId], references: [id])
+}
+
+model MilestoneSubmission {
+  id             String           @id @default(cuid())
+  milestoneId    String
+  kolAddress     String           @db.VarChar(255)
+  description    String
+  proofType      ProofType
+  proofUrl       String
+  socialPlatform String?
+  metrics        Json?
+  status         SubmissionStatus @default(PENDING)
+  feedback       String?
+  reviewedBy     String?          @db.VarChar(255)
+  reviewedAt     DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  milestone      Milestone        @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+
+  @@index([milestoneId])
+  @@index([kolAddress])
+  @@index([status])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  data      Json?
+  read      Boolean          @default(false)
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model ChainConfig {
+  id                String      @id
+  chainId           String      @unique
+  chainName         String
+  chainType         String
+  rpcUrl            String
+  wsUrl             String?
+  explorerUrl       String
+  nativeCurrency    Json
+  blockTime         Float
+  isTestnet         Boolean     @default(false)
+  isActive          Boolean     @default(true)
+  contractAddresses Json
+  metadata          Json?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime
+  SyncStatus        SyncStatus?
+
+  @@index([chainType])
+  @@index([isActive])
+}
+
+model ChainHealth {
+  id          String   @id
+  chainId     String
+  status      String
+  latency     Int?
+  blockHeight BigInt?
+  checkedAt   DateTime @default(now())
+  error       String?
+
+  @@index([chainId, checkedAt])
+}
+
+model SyncLog {
+  id              String    @id
+  chainId         String
+  escrowId        String?
+  operation       String
+  blockNumber     BigInt?
+  transactionHash String?   @db.VarChar(255)
+  status          SyncState
+  error           String?
+  attempts        Int       @default(1)
+  data            Json?
+  createdAt       DateTime  @default(now())
+  processedAt     DateTime?
+  Escrow          Escrow?   @relation(fields: [escrowId], references: [id], onDelete: Cascade)
+
+  @@index([chainId])
+  @@index([createdAt])
+  @@index([escrowId])
+  @@index([status])
+  @@index([transactionHash])
+}
+
+model SyncStatus {
+  id                String      @id
+  chainId           String      @unique
+  lastBlockNumber   BigInt?
+  lastSyncedAt      DateTime?
+  status            SyncState   @default(IDLE)
+  error             String?
+  consecutiveErrors Int         @default(0)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime
+  ChainConfig       ChainConfig @relation(fields: [chainId], references: [chainId])
+
+  @@index([status])
+}
+
+enum EscrowStatus {
+  ACTIVE
+  COMPLETED
+  DISPUTED
+  CANCELLED
+  PAUSED
+}
+
+enum VerificationMethod {
+  SINGLE
+  MAJORITY
+  UNANIMOUS
+}
+
+enum DisputeMethod {
+  ADMIN
+  DAO
+  ARBITRATOR
+}
+
+enum DisputeType {
+  MILESTONE_DISPUTE
+  QUALITY_DISPUTE
+  DEADLINE_DISPUTE
+  OTHER
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  REJECTED
+}
+
+enum ProofType {
+  LINK
+  FILE
+  SOCIAL
+}
+
+enum SubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  DISPUTED
+}
+
+enum NotificationType {
+  ESCROW_CREATED
+  MILESTONE_SUBMITTED
+  MILESTONE_APPROVED
+  MILESTONE_REJECTED
+  MILESTONE_RELEASED
+  FUNDS_CLAIMED
+  DISPUTE_RAISED
+  DISPUTE_RESOLVED
+  ESCROW_COMPLETED
+  ESCROW_CANCELLED
+  VERIFICATION_REQUIRED
+  SYSTEM_ANNOUNCEMENT
+}
+
+// Token Launchpad Models
+
+model Token {
+  id                   String         @id @default(cuid())
+  address              String         @unique @db.VarChar(255)
+  name                 String
+  symbol               String
+  description          String?
+  imageUrl             String?
+  twitter              String?
+  telegram             String?
+  website              String?
+  totalSupply          String
+  bondingCurveType     String         @default("constant")
+  bondingCurveAddress  String         @db.VarChar(255)
+  status               TokenStatus    @default(ACTIVE)
+  currentPrice         String         @default("0")
+  marketCap            String         @default("0")
+  liquidity            String         @default("0")
+  bondingProgress      Float          @default(0)
+  holdersCount         Int            @default(1)
+  volume24h            String         @default("0")
+  change24h            Float          @default(0)
+  creatorId            String
+  creator              User           @relation(fields: [creatorId], references: [id])
+  deploymentTx         String         @db.VarChar(255)
+  chainId              String
+  graduatedAt          DateTime?
+  graduationTx         String?        @db.VarChar(255)
+  uniswapPoolAddress   String?        @db.VarChar(255)
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  trades               Trade[]
+  holders              TokenHolder[]
+  
+  @@index([symbol])
+  @@index([status])
+  @@index([creatorId])
+  @@index([bondingProgress])
+  @@index([marketCap])
+}
+
+model Trade {
+  id               String      @id @default(cuid())
+  tokenId          String
+  token            Token       @relation(fields: [tokenId], references: [id])
+  type             TradeType
+  trader           String      @db.VarChar(255)
+  amount           String
+  price            String
+  totalCost        String?
+  totalReceived    String?
+  transactionHash  String      @db.VarChar(255)
+  gasUsed          String?
+  timestamp        DateTime    @default(now())
+  
+  @@index([tokenId])
+  @@index([trader])
+  @@index([timestamp])
+  @@index([type])
+}
+
+model TokenHolder {
+  id            String   @id @default(cuid())
+  tokenId       String
+  token         Token    @relation(fields: [tokenId], references: [id])
+  tokenAddress  String   @db.VarChar(255)
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  balance       String
+  percentOwned  Float
+  firstBuyAt    DateTime
+  lastTradeAt   DateTime @updatedAt
+  totalBought   String   @default("0")
+  totalSold     String   @default("0")
+  realizedPnl   String   @default("0")
+  unrealizedPnl String   @default("0")
+  
+  @@unique([tokenAddress, userId])
+  @@index([tokenAddress])
+  @@index([userId])
+  @@index([balance])
+}
+
+enum TokenStatus {
+  ACTIVE
+  GRADUATED
+  FAILED
+  PAUSED
+}
+
+enum TradeType {
+  BUY
+  SELL
+}
+
+enum VerificationAction {
+  APPROVE
+  REJECT
+  COMMENT
+}
+
+enum SyncState {
+  IDLE
+  SYNCING
+  SUCCESS
+  FAILED
+  RETRY
+}

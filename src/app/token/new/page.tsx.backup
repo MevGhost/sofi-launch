@@ -1,0 +1,1209 @@
+'use client';
+
+import React, { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import { useAccount } from 'wagmi';
+import { showToast } from '@/components/ToastProvider';
+import { useIsMobile } from '@/hooks/useIsMobile';
+import { useTokenDeploy } from '@/hooks/useTokenDeploy';
+import { useSimpleTokenDeployV2 } from '@/hooks/useSimpleTokenDeployV2';
+import { useCheckTokenLimits } from '@/hooks/useCheckTokenLimits';
+import { useAuth } from '@/hooks/useAuth';
+import dynamic from 'next/dynamic';
+import { LayoutShell, Chip } from '@/components/alien/Layout';
+import { Button } from '@/components/alien/Button';
+import { Card } from '@/components/alien/Card';
+import { Input } from '@/components/alien/Input';
+import { API_ENDPOINTS } from '@/lib/api/config';
+import {
+  FiZap,
+  FiTag,
+  FiTrendingUp,
+  FiGlobe,
+  FiCheckCircle,
+  FiUpload,
+  FiArrowRight,
+  FiArrowLeft,
+  FiAlertCircle,
+  FiTwitter,
+  FiMessageCircle,
+  FiLink,
+  FiImage,
+  FiX,
+  FiLoader
+} from 'react-icons/fi';
+
+// Dynamically import mobile component
+const MobileTokenCreation = dynamic(
+  () => import('@/components/mobile/MobileTokenCreation').then(mod => ({ default: mod.MobileTokenCreation })),
+  { 
+    loading: () => <div className="min-h-screen bg-canvas" />,
+    ssr: false 
+  }
+);
+
+// Dynamically import SpaceBackground
+const SpaceBackground = dynamic(
+  () => import('@/visual-effects/backgrounds/SpaceBackground').then(mod => ({ default: mod.SpaceBackground })),
+  { ssr: false }
+);
+
+interface TokenData {
+  // Contract-compatible fields (IntegratedTokenFactory)
+  name: string;
+  symbol: string;
+  description: string;
+  imageUrl: string;
+  twitter: string;
+  telegram: string;
+  website: string;
+  devBuyAmount?: string; // ETH amount for dev buy (optional)
+  // Note: totalSupply is fixed at 1B tokens in the contract
+  // Note: bondingCurveType is fixed as constant product (x*y=k) in the contract
+}
+
+const STEPS = [
+  {
+    id: 'welcome',
+    title: 'Welcome to S4Labs',
+    subtitle: 'Let\'s create your token on Base L2',
+    icon: <FiZap size={20} />,
+  },
+  {
+    id: 'identity',
+    title: 'Token Identity',
+    subtitle: 'Give your token a unique identity',
+    icon: <FiTag size={20} />,
+  },
+  {
+    id: 'tokenomics',
+    title: 'Tokenomics',
+    subtitle: 'Configure your token economics',
+    icon: <FiTrendingUp size={20} />,
+  },
+  {
+    id: 'social',
+    title: 'Social Links',
+    subtitle: 'Connect with your community',
+    icon: <FiGlobe size={20} />,
+  },
+  {
+    id: 'review',
+    title: 'Review & Launch',
+    subtitle: 'Double-check everything before launch',
+    icon: <FiCheckCircle size={20} />,
+  },
+];
+
+// Fixed tokenomics from IntegratedTokenFactory contract
+const TOKENOMICS = {
+  totalSupply: '1,000,000,000', // 1B tokens (fixed)
+  bondingCurveSupply: '800,000,000', // 80% to bonding curve
+  dexReserve: '200,000,000', // 20% for DEX liquidity
+  creationFee: '0.02 ETH',
+  bondingCurveType: 'Constant Product (x*y=k)', // Fixed in contract
+  initialVirtualEth: '1 ETH',
+  initialVirtualTokens: '1,000,000',
+  graduationThreshold: '$69,000 market cap',
+  platformFee: '1%',
+  creatorFee: '1%',
+};
+
+export default function NewTokenPage() {
+  const router = useRouter();
+  const { address, isConnected } = useAccount();
+  const isMobile = useIsMobile();
+  const { deployToken: deployWithBonding, isDeploying: isDeployingBonding, deployedTokenAddress: deployedBonding } = useTokenDeploy();
+  const { deployToken: deploySimple, isDeploying: isDeployingSimple, deployedTokenAddress: deployedSimple } = useSimpleTokenDeployV2();
+  const { canCreateToken, limitMessage, tokenCount, maxTokens } = useCheckTokenLimits();
+  
+  // Combined deploying state
+  const isDeploying = isDeployingBonding || isDeployingSimple;
+  const deployedTokenAddress = deployedBonding || deployedSimple;
+  const { isAuthenticated, login } = useAuth();
+  const [currentStep, setCurrentStep] = useState(0);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [hasInitiatedDeploy, setHasInitiatedDeploy] = useState(false);
+  const [useSimpleFactory, setUseSimpleFactory] = useState(true); // Default to SimpleFactory for lower fees
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [tokenData, setTokenData] = useState<TokenData>({
+    name: '',
+    symbol: '',
+    description: '',
+    imageUrl: '',
+    twitter: '',
+    telegram: '',
+    website: '',
+    devBuyAmount: '',
+  });
+
+  // Auto-redirect when token is deployed
+  useEffect(() => {
+    if (deployedTokenAddress && deployedTokenAddress !== '0x0000000000000000000000000000000000000000') {
+      console.log('Token deployed successfully, redirecting to:', deployedTokenAddress);
+      // Small delay to allow the success toast to show
+      setTimeout(() => {
+        router.push(`/token/${deployedTokenAddress}`);
+      }, 1500);
+    }
+  }, [deployedTokenAddress, router]);
+
+  // Note: Authentication will happen when user clicks deploy
+  // This prevents unnecessary signature requests when just browsing
+
+  // Handle image upload - compress and convert to base64 or upload to backend
+  const handleImageUpload = async (file: File) => {
+    if (!file) return;
+    
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      showToast.error('Image must be less than 5MB');
+      return;
+    }
+    
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      showToast.error('Please upload a valid image file (JPG, PNG, GIF, or WebP)');
+      return;
+    }
+    
+    setUploadingImage(true);
+    
+    try {
+      // Compress image before processing
+      const compressedImage = await compressImage(file);
+      
+      // If compressed image is small enough (< 100KB), use base64
+      if (compressedImage.size < 100 * 1024) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64String = reader.result as string;
+          setTokenData({ ...tokenData, imageUrl: base64String });
+          showToast.success('Image added successfully');
+          setUploadingImage(false);
+        };
+        reader.onerror = () => {
+          showToast.error('Failed to read image file');
+          setUploadingImage(false);
+        };
+        reader.readAsDataURL(compressedImage);
+      } else {
+        // Otherwise, upload to backend
+        const formData = new FormData();
+        formData.append('image', compressedImage);
+        
+        const token = typeof window !== 'undefined' ? (window as any).__AUTH_TOKEN : null;
+        
+        const response = await fetch(API_ENDPOINTS.upload.tokenImage, {
+          method: 'POST',
+          headers: {
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          setTokenData({ ...tokenData, imageUrl: data.data.url });
+          showToast.success('Image uploaded successfully');
+        } else {
+          showToast.error(data.error || 'Failed to upload image');
+        }
+        setUploadingImage(false);
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      showToast.error('Failed to process image');
+      setUploadingImage(false);
+    }
+  };
+
+  // Compress image to reduce file size
+  const compressImage = (file: File): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          // Calculate new dimensions (max 512x512)
+          let width = img.width;
+          let height = img.height;
+          const maxSize = 512;
+          
+          if (width > height) {
+            if (width > maxSize) {
+              height = (height * maxSize) / width;
+              width = maxSize;
+            }
+          } else {
+            if (height > maxSize) {
+              width = (width * maxSize) / height;
+              height = maxSize;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          
+          // Draw and compress
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const compressedFile = new File([blob], file.name, {
+                  type: 'image/jpeg',
+                  lastModified: Date.now(),
+                });
+                resolve(compressedFile);
+              } else {
+                reject(new Error('Compression failed'));
+              }
+            },
+            'image/jpeg',
+            0.85 // 85% quality
+          );
+        };
+        img.onerror = () => reject(new Error('Failed to load image'));
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+    });
+  };
+
+  // Return mobile component if on mobile
+  if (isMobile) {
+    return <MobileTokenCreation />;
+  }
+
+  const handleNext = () => {
+    // Validation for each step
+    if (currentStep === 1) {
+      // Token identity validation (matching IntegratedTokenFactory requirements)
+      if (!tokenData.name) {
+        showToast.error('Please enter a token name');
+        return;
+      }
+      if (tokenData.name.length > 32) {
+        showToast.error('Token name must be 32 characters or less');
+        return;
+      }
+      
+      if (!tokenData.symbol) {
+        showToast.error('Please enter a token symbol');
+        return;
+      }
+      if (tokenData.symbol.length > 8) {
+        showToast.error('Symbol must be 8 characters or less');
+        return;
+      }
+    }
+    
+    if (currentStep < STEPS.length - 1) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const handleDeploy = async () => {
+    console.log('Deploy button clicked!');
+    console.log('Connected:', isConnected);
+    console.log('Authenticated:', isAuthenticated);
+    console.log('Token data:', tokenData);
+    console.log('Using Simple Factory:', useSimpleFactory);
+    console.log('Can create token:', canCreateToken);
+    console.log('Token count:', tokenCount, '/', maxTokens);
+    
+    // Prevent multiple deploy attempts
+    if (hasInitiatedDeploy || isDeploying) {
+      console.log('Deploy already initiated, preventing duplicate');
+      return;
+    }
+    
+    // Check token creation limits
+    if (!canCreateToken && limitMessage) {
+      showToast.error(limitMessage);
+      return;
+    }
+    
+    if (!isConnected) {
+      showToast.error('Please connect your wallet first');
+      return;
+    }
+    
+    setHasInitiatedDeploy(true);
+
+    // Ensure user is authenticated
+    if (!isAuthenticated) {
+      showToast.info('Authenticating...');
+      const success = await login();
+      if (!success) {
+        showToast.error('Failed to authenticate. Please try again.');
+        setHasInitiatedDeploy(false);
+        return;
+      }
+    }
+
+    // Final validation
+    if (!tokenData.name || !tokenData.symbol) {
+      showToast.error('Please complete all required fields');
+      setHasInitiatedDeploy(false);
+      return;
+    }
+
+    try {
+      console.log(`Calling deployToken with ${useSimpleFactory ? 'SimpleFactory' : 'IntegratedFactory'}...`);
+      
+      // Choose the appropriate deploy function
+      const deployFunction = useSimpleFactory ? deploySimple : deployWithBonding;
+      
+      // Deploy token on-chain using user's wallet
+      await deployFunction({
+        name: tokenData.name,
+        symbol: tokenData.symbol.toUpperCase(),
+        description: tokenData.description,
+        imageUrl: tokenData.imageUrl,
+        twitter: tokenData.twitter,
+        telegram: tokenData.telegram,
+        website: tokenData.website,
+        ...(useSimpleFactory && tokenData.devBuyAmount ? { devBuyAmount: tokenData.devBuyAmount } : {}),
+      });
+
+      // The success handling is done in the hook
+      // We'll navigate when the deployment is successful
+    } catch (error: any) {
+      console.error('Failed to deploy token:', error);
+      setHasInitiatedDeploy(false);
+      showToast.error(error?.message || 'Failed to deploy token');
+    }
+  };
+
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 0: // Welcome
+        return (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.05 }}
+            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+            className="space-y-6"
+          >
+            <div className="text-center space-y-4">
+              <motion.div 
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.1, type: "spring", stiffness: 200, damping: 15 }}
+                className="w-24 h-24 mx-auto bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center"
+              >
+                <FiZap size={48} className="text-white" />
+              </motion.div>
+              <motion.h2 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="text-3xl font-bold text-text-primary"
+              >
+                Ready to launch your token?
+              </motion.h2>
+              <motion.p 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="text-text-muted max-w-md mx-auto"
+              >
+                Create and deploy your token on Base L2 with our innovative bonding curve mechanism. 
+                Your token will automatically graduate to Uniswap V3 at $69k market cap.
+              </motion.p>
+            </div>
+
+            <Card className="p-6 bg-surface2/90 backdrop-blur-sm">
+              <h3 className="text-lg font-semibold text-text-primary mb-4">
+                Platform Features
+              </h3>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                    <FiCheckCircle className="text-primary" size={16} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-text-primary">Fair Launch Mechanism</p>
+                    <p className="text-xs text-text-muted">No presales, no team allocation, 100% fair</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                    <FiCheckCircle className="text-primary" size={16} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-text-primary">Automatic Liquidity</p>
+                    <p className="text-xs text-text-muted">LP tokens burned on graduation</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                    <FiCheckCircle className="text-primary" size={16} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-text-primary">Creator Rewards</p>
+                    <p className="text-xs text-text-muted">Earn 1% of all trading fees</p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <div className="bg-warning/10 border border-warning/20 rounded-lg p-4">
+              <div className="flex gap-3">
+                <FiAlertCircle className="text-warning flex-shrink-0" size={20} />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-warning">Launch Fee Required</p>
+                  <p className="text-xs text-text-muted">
+                    A one-time fee of 0.001 ETH (Low-Fee) or 0.02 ETH (Standard) is required to deploy your token.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        );
+
+      case 1: // Identity
+        return (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.05 }}
+            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+            className="space-y-6"
+          >
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-2">
+                  Token Name *
+                </label>
+                <Input
+                  placeholder="e.g., MoonShot Token"
+                  value={tokenData.name}
+                  onChange={(e) => setTokenData({ ...tokenData, name: e.target.value })}
+                  maxLength={32}
+                />
+                <p className="text-xs text-text-muted mt-1">
+                  Choose a memorable name (max 32 characters)
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-2">
+                  Token Symbol *
+                </label>
+                <Input
+                  placeholder="e.g., MOON"
+                  value={tokenData.symbol}
+                  onChange={(e) => setTokenData({ ...tokenData, symbol: e.target.value.toUpperCase() })}
+                  maxLength={8}
+                />
+                <p className="text-xs text-text-muted mt-1">
+                  1-8 characters, will be uppercase
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-text-secondary mb-2">
+                Description
+              </label>
+              <textarea
+                className="w-full px-4 py-3 bg-surface2 border border-border rounded-lg text-text-primary placeholder-text-muted focus:outline-none focus:border-primary transition-colors resize-none"
+                placeholder="Describe your token's purpose, vision, and what makes it unique..."
+                value={tokenData.description}
+                onChange={(e) => setTokenData({ ...tokenData, description: e.target.value })}
+                rows={4}
+              />
+              <p className="text-xs text-text-muted mt-1">
+                Help potential investors understand your project
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-text-secondary mb-2">
+                Token Image
+              </label>
+              
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleImageUpload(file);
+                }}
+                className="hidden"
+              />
+              
+              {!tokenData.imageUrl ? (
+                <div className="space-y-3">
+                  <div className="flex gap-3">
+                    <Input
+                      placeholder="https://example.com/token-logo.png"
+                      value={tokenData.imageUrl}
+                      onChange={(e) => setTokenData({ ...tokenData, imageUrl: e.target.value })}
+                      className="flex-1"
+                    />
+                    <Button 
+                      variant="secondary" 
+                      icon={uploadingImage ? <FiLoader size={16} className="animate-spin" /> : <FiUpload size={16} />}
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingImage}
+                    >
+                      {uploadingImage ? 'Uploading...' : 'Upload'}
+                    </Button>
+                  </div>
+                  
+                  {/* Drag and drop area */}
+                  <div 
+                    className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer"
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.add('border-primary');
+                    }}
+                    onDragLeave={(e) => {
+                      e.currentTarget.classList.remove('border-primary');
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.remove('border-primary');
+                      const file = e.dataTransfer.files[0];
+                      if (file) handleImageUpload(file);
+                    }}
+                  >
+                    <FiImage size={48} className="mx-auto mb-3 text-text-muted" />
+                    <p className="text-sm text-text-primary mb-1">
+                      Click to upload or drag and drop
+                    </p>
+                    <p className="text-xs text-text-muted">
+                      PNG, JPG, GIF or WebP (max 5MB)
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-4 p-3 bg-surface2 rounded-lg">
+                    <div className="w-16 h-16 rounded-full bg-surface3 overflow-hidden">
+                      <img 
+                        src={tokenData.imageUrl} 
+                        alt="Token preview"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = 'https://api.dicebear.com/7.x/identicon/svg?seed=' + tokenData.symbol;
+                        }}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-text-primary truncate">
+                        {tokenData.imageUrl.split('/').pop()}
+                      </p>
+                      <p className="text-xs text-text-muted">Image uploaded successfully</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      icon={<FiX size={16} />}
+                      onClick={() => setTokenData({ ...tokenData, imageUrl: '' })}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        );
+
+      case 2: // Tokenomics
+        return (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.05 }}
+            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+            className="space-y-6"
+          >
+            {/* Factory Type Selection */}
+            <div className="bg-surface2 rounded-xl p-6 space-y-4">
+              <h3 className="text-lg font-semibold text-text-primary mb-4">
+                Choose Factory Type
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card
+                  onClick={() => setUseSimpleFactory(true)}
+                  className={`cursor-pointer transition-all ${
+                    useSimpleFactory ? 'ring-2 ring-primary bg-surface3' : 'hover:bg-surface2'
+                  }`}
+                >
+                  <div className="p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold text-text-primary">Low-Fee Bonding</h4>
+                      {useSimpleFactory && <FiCheckCircle className="text-primary" size={20} />}
+                    </div>
+                    <p className="text-sm text-text-muted">Best of both worlds!</p>
+                    <div className="pt-2 space-y-1">
+                      <p className="text-xs text-success">✓ Only 0.001 ETH fee</p>
+                      <p className="text-xs text-success">✓ Full bonding curve</p>
+                      <p className="text-xs text-success">✓ Buy/Sell trading</p>
+                      <p className="text-xs text-success">✓ Auto DEX graduation</p>
+                    </div>
+                  </div>
+                </Card>
+                
+                <Card
+                  onClick={() => setUseSimpleFactory(false)}
+                  className={`cursor-pointer transition-all ${
+                    !useSimpleFactory ? 'ring-2 ring-primary bg-surface3' : 'hover:bg-surface2'
+                  }`}
+                >
+                  <div className="p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold text-text-primary">Standard Factory</h4>
+                      {!useSimpleFactory && <FiCheckCircle className="text-primary" size={20} />}
+                    </div>
+                    <p className="text-sm text-text-muted">Original bonding curve</p>
+                    <div className="pt-2 space-y-1">
+                      <p className="text-xs text-success">✓ Same features</p>
+                      <p className="text-xs text-success">✓ Well tested</p>
+                      <p className="text-xs text-warning">⚠ Higher 0.02 ETH fee</p>
+                      <p className="text-xs text-warning">⚠ 20x more expensive</p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </div>
+            
+            {/* Dev Buy Option - Only for Low-Fee Bonding */}
+            {useSimpleFactory && (
+              <div className="bg-surface2 rounded-xl p-6 space-y-4">
+                <h3 className="text-lg font-semibold text-text-primary mb-4">
+                  Dev Buy Option (Optional)
+                </h3>
+                <p className="text-sm text-text-muted mb-4">
+                  Purchase tokens at creation with a 5% bonus discount! Max 1 ETH.
+                </p>
+                <div>
+                  <label className="block text-sm font-medium text-text-secondary mb-2">
+                    Initial Buy Amount (ETH)
+                  </label>
+                  <Input
+                    type="number"
+                    placeholder="0.1"
+                    value={tokenData.devBuyAmount}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Validate max 1 ETH
+                      if (value && parseFloat(value) > 1) {
+                        showToast.error('Max dev buy is 1 ETH');
+                        return;
+                      }
+                      setTokenData({ ...tokenData, devBuyAmount: value });
+                    }}
+                    step="0.01"
+                    min="0"
+                    max="1"
+                  />
+                  <p className="text-xs text-text-muted mt-1">
+                    Leave empty to skip initial purchase
+                  </p>
+                  {tokenData.devBuyAmount && parseFloat(tokenData.devBuyAmount) > 0 && (
+                    <div className="mt-3 p-3 bg-success/10 border border-success/20 rounded-lg">
+                      <p className="text-sm text-success">
+                        ✨ You'll receive a 5% bonus on your initial purchase!
+                      </p>
+                      <p className="text-xs text-text-muted mt-1">
+                        This helps bootstrap liquidity and shows commitment to your token.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {/* Display tokenomics based on selected factory */}
+            <div className="bg-surface2 rounded-xl p-6 space-y-4">
+              <h3 className="text-lg font-semibold text-text-primary mb-4">
+                {useSimpleFactory ? 'Simple Token Parameters' : 'Bonding Curve Parameters'}
+              </h3>
+              <p className="text-sm text-text-muted mb-4">
+                {useSimpleFactory 
+                  ? 'Simple tokens are minted directly to the creator with fixed supply.'
+                  : 'All tokens launched use the same fair and transparent bonding curve model.'}
+              </p>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs text-text-muted uppercase tracking-wider mb-1">Total Supply</p>
+                    <p className="text-lg font-medium text-text-primary">{TOKENOMICS.totalSupply}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-text-muted uppercase tracking-wider mb-1">Bonding Curve</p>
+                    <p className="text-lg font-medium text-text-primary">{TOKENOMICS.bondingCurveSupply}</p>
+                    <p className="text-xs text-text-muted">80% for fair launch</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-text-muted uppercase tracking-wider mb-1">DEX Reserve</p>
+                    <p className="text-lg font-medium text-text-primary">{TOKENOMICS.dexReserve}</p>
+                    <p className="text-xs text-text-muted">20% for Uniswap V3</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-text-muted uppercase tracking-wider mb-1">Creation Fee</p>
+                    <p className="text-lg font-medium text-text-primary">{TOKENOMICS.creationFee}</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs text-text-muted uppercase tracking-wider mb-1">Curve Type</p>
+                    <p className="text-lg font-medium text-text-primary">{TOKENOMICS.bondingCurveType}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-text-muted uppercase tracking-wider mb-1">Initial Liquidity</p>
+                    <p className="text-sm font-medium text-text-primary">{TOKENOMICS.initialVirtualEth} ETH</p>
+                    <p className="text-sm font-medium text-text-primary">{TOKENOMICS.initialVirtualTokens} tokens</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-text-muted uppercase tracking-wider mb-1">Graduation</p>
+                    <p className="text-lg font-medium text-text-primary">{TOKENOMICS.graduationThreshold}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-text-muted uppercase tracking-wider mb-1">Trading Fees</p>
+                    <p className="text-sm font-medium text-text-primary">Platform: {TOKENOMICS.platformFee}</p>
+                    <p className="text-sm font-medium text-text-primary">Creator: {TOKENOMICS.creatorFee}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <Card className="p-4 bg-primary/10 border-primary/20">
+              <div className="flex items-start gap-3">
+                <FiAlertCircle className="text-primary flex-shrink-0 mt-0.5" size={18} />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-text-primary">Fair Launch Guarantee</p>
+                  <p className="text-xs text-text-muted">
+                    All tokens start with the same parameters to ensure fairness. No pre-sales, no team allocations, 
+                    and transparent fee structure for everyone.
+                  </p>
+                </div>
+              </div>
+            </Card>
+            
+            <div>
+              <label className="block text-sm font-medium text-text-secondary mb-4">
+                How the Bonding Curve Works
+              </label>
+              <div className="grid gap-3">
+                <Card className="p-4 bg-surface2/90 backdrop-blur-sm">
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-semibold text-text-primary mb-2">Constant Product Formula (x*y=k)</h4>
+                      <p className="text-sm text-text-muted mb-3">
+                        The bonding curve uses a constant product formula similar to Uniswap V2. As more tokens are bought, 
+                        the price increases. As tokens are sold, the price decreases.
+                      </p>
+                      <div className="bg-surface3 rounded-lg p-3">
+                        <code className="text-xs text-primary font-mono">Price = ETH Reserve / Token Reserve</code>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-3 text-center">
+                      <div>
+                        <p className="text-xs text-text-muted mb-1">Start Price</p>
+                        <p className="text-sm font-medium text-text-primary">~$0.001</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-text-muted mb-1">Mid Price</p>
+                        <p className="text-sm font-medium text-text-primary">~$0.05</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-text-muted mb-1">Graduation</p>
+                        <p className="text-sm font-medium text-success">$69k MCap</p>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </div>
+          </motion.div>
+        );
+
+      case 3: // Social
+        return (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.05 }}
+            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+            className="space-y-6"
+          >
+            <div className="text-center mb-6">
+              <h3 className="text-lg font-semibold text-text-primary mb-2">
+                Connect Your Community
+              </h3>
+              <p className="text-sm text-text-muted">
+                Add social links to help your community find and follow your project
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-2">
+                  <FiTwitter className="inline mr-2" size={16} />
+                  Twitter
+                </label>
+                <Input
+                  placeholder="@yourtoken or https://twitter.com/yourtoken"
+                  value={tokenData.twitter}
+                  onChange={(e) => setTokenData({ ...tokenData, twitter: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-2">
+                  <FiMessageCircle className="inline mr-2" size={16} />
+                  Telegram
+                </label>
+                <Input
+                  placeholder="t.me/yourtoken"
+                  value={tokenData.telegram}
+                  onChange={(e) => setTokenData({ ...tokenData, telegram: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-2">
+                  <FiLink className="inline mr-2" size={16} />
+                  Website
+                </label>
+                <Input
+                  placeholder="https://yourtoken.com"
+                  value={tokenData.website}
+                  onChange={(e) => setTokenData({ ...tokenData, website: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <Card className="p-4 bg-info/10 border border-info/20">
+              <div className="flex gap-3">
+                <FiAlertCircle className="text-info flex-shrink-0" size={20} />
+                <div>
+                  <p className="text-sm font-medium text-info">Pro Tip</p>
+                  <p className="text-xs text-text-muted mt-1">
+                    Active social channels significantly increase token success rates. 
+                    Consider setting up at least Twitter and Telegram before launch.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        );
+
+      case 4: // Review
+        return (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.05 }}
+            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+            className="space-y-6"
+          >
+            <div className="text-center mb-6">
+              <h3 className="text-xl font-bold text-text-primary mb-2">
+                Ready to Launch!
+              </h3>
+              <p className="text-sm text-text-muted">
+                Review your token details before deployment
+              </p>
+            </div>
+
+            <Card className="p-6 space-y-4 bg-surface2/90 backdrop-blur-sm">
+              <div>
+                <h4 className="text-sm font-medium text-text-secondary mb-3">Token Identity</h4>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-text-muted">Name:</span>
+                    <p className="text-text-primary font-medium">{tokenData.name || 'Not set'}</p>
+                  </div>
+                  <div>
+                    <span className="text-text-muted">Symbol:</span>
+                    <p className="text-text-primary font-medium">{tokenData.symbol || 'Not set'}</p>
+                  </div>
+                </div>
+                {tokenData.description && (
+                  <div className="mt-2">
+                    <span className="text-text-muted text-sm">Description:</span>
+                    <p className="text-text-primary text-sm mt-1">{tokenData.description}</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t border-border pt-4">
+                <h4 className="text-sm font-medium text-text-secondary mb-3">Tokenomics</h4>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-text-muted">Total Supply:</span>
+                    <p className="text-text-primary font-medium">{TOKENOMICS.totalSupply}</p>
+                  </div>
+                  <div>
+                    <span className="text-text-muted">Bonding Curve:</span>
+                    <p className="text-text-primary font-medium">{TOKENOMICS.bondingCurveType}</p>
+                  </div>
+                  <div>
+                    <span className="text-text-muted">Initial Liquidity:</span>
+                    <p className="text-text-primary font-medium">{TOKENOMICS.initialVirtualEth}</p>
+                  </div>
+                  <div>
+                    <span className="text-text-muted">Graduation:</span>
+                    <p className="text-text-primary font-medium">{TOKENOMICS.graduationThreshold}</p>
+                  </div>
+                </div>
+              </div>
+
+              {(tokenData.twitter || tokenData.telegram || tokenData.website) && (
+                <div className="border-t border-border pt-4">
+                  <h4 className="text-sm font-medium text-text-secondary mb-3">Social Links</h4>
+                  <div className="space-y-2 text-sm">
+                    {tokenData.twitter && (
+                      <div className="flex items-center gap-2">
+                        <FiTwitter className="text-text-muted" size={14} />
+                        <span className="text-text-primary">{tokenData.twitter}</span>
+                      </div>
+                    )}
+                    {tokenData.telegram && (
+                      <div className="flex items-center gap-2">
+                        <FiMessageCircle className="text-text-muted" size={14} />
+                        <span className="text-text-primary">{tokenData.telegram}</span>
+                      </div>
+                    )}
+                    {tokenData.website && (
+                      <div className="flex items-center gap-2">
+                        <FiLink className="text-text-muted" size={14} />
+                        <span className="text-text-primary">{tokenData.website}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </Card>
+
+            <Card className="p-4 bg-surface2/90 backdrop-blur-sm">
+              <h4 className="text-sm font-medium text-text-primary mb-3">Platform Fees</h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-text-muted">Launch Fee</span>
+                  <span className="text-text-primary font-mono">{useSimpleFactory ? '0.001 ETH' : '0.02 ETH'}</span>
+                </div>
+                {tokenData.devBuyAmount && parseFloat(tokenData.devBuyAmount) > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-text-muted">Dev Buy Amount</span>
+                    <span className="text-success font-mono">{tokenData.devBuyAmount} ETH (+5% bonus)</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-text-muted">Trading Fee</span>
+                  <span className="text-text-primary font-mono">1%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-text-muted">Creator Revenue</span>
+                  <span className="text-text-primary font-mono">1% of all trades</span>
+                </div>
+                {tokenData.devBuyAmount && parseFloat(tokenData.devBuyAmount) > 0 && (
+                  <div className="border-t border-border pt-2 flex justify-between font-semibold">
+                    <span className="text-text-primary">Total Payment</span>
+                    <span className="text-text-primary font-mono">
+                      {(parseFloat(useSimpleFactory ? '0.001' : '0.02') + parseFloat(tokenData.devBuyAmount)).toFixed(3)} ETH
+                    </span>
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            {!isConnected && (
+              <div className="bg-warning/10 border border-warning/20 rounded-lg p-4">
+                <div className="flex gap-3">
+                  <FiAlertCircle className="text-warning flex-shrink-0" size={20} />
+                  <div>
+                    <p className="text-sm font-medium text-warning">Wallet Not Connected</p>
+                    <p className="text-xs text-text-muted mt-1">
+                      Please connect your wallet to deploy your token.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <LayoutShell>
+      {/* Space Background - positioned absolutely */}
+      <div className="fixed inset-0 z-0">
+        <SpaceBackground />
+      </div>
+      
+      {/* Main content with higher z-index */}
+      <div className="relative" style={{ zIndex: 1 }}>
+      <div className="max-w-4xl mx-auto p-6">
+        {/* Progress Steps */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            {STEPS.map((step, index) => (
+              <motion.div 
+                key={step.id} 
+                className="flex-1"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1, duration: 0.5 }}
+              >
+                <div className="flex items-center">
+                  <motion.div
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                    className={`
+                      w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300
+                      ${index <= currentStep
+                        ? 'bg-primary text-white shadow-lg shadow-primary/30'
+                        : 'bg-surface2 text-text-muted'
+                      }
+                    `}
+                  >
+                    {index < currentStep ? (
+                      <motion.div
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                      >
+                        <FiCheckCircle size={20} />
+                      </motion.div>
+                    ) : (
+                      step.icon
+                    )}
+                  </motion.div>
+                  {index < STEPS.length - 1 && (
+                    <div className="flex-1 h-0.5 mx-2 bg-surface2 relative overflow-hidden">
+                      <motion.div
+                        className="absolute inset-y-0 left-0 bg-primary"
+                        initial={{ width: "0%" }}
+                        animate={{ 
+                          width: index < currentStep ? "100%" : "0%"
+                        }}
+                        transition={{ duration: 0.5, ease: "easeInOut" }}
+                      />
+                    </div>
+                  )}
+                </div>
+                <div className="mt-2">
+                  <p className="text-xs font-medium text-text-primary">
+                    {step.title}
+                  </p>
+                  <p className="text-xs text-text-muted hidden md:block">
+                    {step.subtitle}
+                  </p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+
+        {/* Step Content */}
+        <Card className="min-h-[400px] p-8 bg-surface2/95 backdrop-blur-sm">
+          <AnimatePresence mode="wait">
+            {renderStepContent()}
+          </AnimatePresence>
+        </Card>
+
+        {/* Navigation */}
+        <motion.div 
+          className="mt-6 flex items-center justify-between"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <motion.div whileHover={{ x: -5 }} whileTap={{ scale: 0.95 }}>
+            <Button
+              variant="ghost"
+              onClick={handlePrev}
+              disabled={currentStep === 0}
+              icon={<FiArrowLeft size={16} />}
+            >
+              Previous
+            </Button>
+          </motion.div>
+
+          <motion.span 
+            className="text-sm text-text-muted"
+            key={currentStep}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.2 }}
+          >
+            Step {currentStep + 1} of {STEPS.length}
+          </motion.span>
+
+          {currentStep < STEPS.length - 1 ? (
+            <motion.div whileHover={{ x: 5 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                variant="primary"
+                onClick={handleNext}
+                icon={<FiArrowRight size={16} />}
+              >
+                Next
+              </Button>
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              transition={{ 
+                type: "spring",
+                stiffness: 200,
+                damping: 15
+              }}
+            >
+              <Button
+                variant="primary"
+                onClick={handleDeploy}
+                disabled={!isConnected || isDeploying || !canCreateToken}
+                loading={isDeploying}
+                icon={<FiZap size={16} />}
+                className="shadow-lg shadow-primary/30"
+              >
+                {!isConnected ? 'Connect Wallet' : 
+                 !canCreateToken ? `Token Limit (${tokenCount}/${maxTokens})` :
+                 isDeploying ? 'Deploying...' : 
+                 useSimpleFactory ? 'Deploy Token (0.001 ETH)' : 'Deploy Token (0.02 ETH)'}
+              </Button>
+              {limitMessage && (
+                <p className="mt-2 text-xs text-secondary">{limitMessage}</p>
+              )}
+            </motion.div>
+          )}
+        </motion.div>
+      </div>
+      </div>
+    </LayoutShell>
+  );
+}

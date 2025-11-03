@@ -1,0 +1,56 @@
+{
+  "name": "@s4labs/visual-effects",
+  "version": "1.0.0",
+  "description": "Comprehensive visual effects library for S4 Labs - includes particles, backgrounds, animations, and interactive components",
+  "main": "index.ts",
+  "author": "S4 Labs",
+  "license": "MIT",
+  "keywords": [
+    "visual-effects",
+    "particles",
+    "three.js",
+    "webgl",
+    "animations",
+    "react",
+    "typescript",
+    "framer-motion"
+  ],
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "dependencies": {
+    "framer-motion": "^11.0.0",
+    "three": "^0.160.0",
+    "three-stdlib": "^2.28.0"
+  },
+  "optionalDependencies": {
+    "react-icons": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.160.0",
+    "@types/react": "^18.0.0"
+  },
+  "files": [
+    "index.ts",
+    "particles/",
+    "backgrounds/",
+    "animations/",
+    "buttons/",
+    "canvas/",
+    "assets/",
+    "styles/",
+    "*.md"
+  ],
+  "scripts": {
+    "demo": "# Run the demo page in your Next.js app"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/s4labs/visual-effects"
+  },
+  "bugs": {
+    "url": "https://github.com/s4labs/visual-effects/issues"
+  },
+  "homepage": "https://github.com/s4labs/visual-effects#readme"
+}

@@ -1,0 +1,468 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global Font Application */
+@layer base {
+  /* Revert: Use Orbitron as the default font for body text */
+  body {
+    font-family: var(--font-orbitron), system-ui, sans-serif;
+    letter-spacing: 0.025em;
+  }
+  
+  /* Use Michroma for headings and display text */
+  h1, h2, h3, h4, h5, h6,
+  .font-display {
+    font-family: var(--font-michroma), system-ui, sans-serif;
+    letter-spacing: 0.05em;
+  }
+  
+  /* Buttons get Orbitron with tighter spacing */
+  button, .btn {
+    font-family: var(--font-orbitron), system-ui, sans-serif;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+  }
+  
+  /* Input fields stay readable with Orbitron */
+  input, textarea, select {
+    font-family: var(--font-orbitron), system-ui, sans-serif;
+  }
+  
+  /* Code blocks get monospace fallback */
+  code, pre {
+    font-family: 'Courier New', monospace;
+  }
+}
+
+@layer base {
+  :root {
+    /* S4Labs Color System */
+    --primary: 222.2 47.4% 51.2%; /* #0EA5E9 */
+    --primary-dark: 221.21 100% 50%; /* #0052FF */
+    --primary-light: 188.74 86.85% 52.94%; /* #06B6D4 */
+    
+    --accent: 23.66 100% 50%; /* #FF6B00 - for AlienBase branding */
+    --accent-light: 23.29 100% 60%; /* #FF8533 */
+    --accent-dark: 23.66 100% 40%; /* #CC5500 */
+    
+    --background: 0 0% 0%; /* #000000 */
+    --surface: 222.22 84.21% 4.9%; /* #020617 */
+    --foreground: 0 0% 100%; /* #FFFFFF */
+    
+    --success: 142.1 71.4% 34.5%; /* #10B981 */
+    --warning: 35.89 96.59% 48.43%; /* #F59E0B */
+    --error: 0 72.22% 50.59%; /* #EF4444 */
+    
+    --border: 0 0% 100% / 0.08;
+    --ring: 222.2 47.4% 51.2%;
+  }
+  
+  body {
+    @apply bg-black text-white;
+    background: #000000;
+    color: white;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+}
+
+@layer utilities {
+  /* Font utility classes */
+  .font-terminal {
+    font-family: var(--font-orbitron), system-ui, sans-serif;
+    letter-spacing: 0.05em;
+  }
+  
+  .font-scifi {
+    font-family: var(--font-michroma), system-ui, sans-serif;
+    letter-spacing: 0.075em;
+  }
+  
+  .glass {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  
+  .glass-hover:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+  
+  .glow {
+    box-shadow: 0 0 30px rgba(14, 165, 233, 0.3);
+  }
+  
+  .text-gradient {
+    @apply text-transparent bg-clip-text;
+    background-image: linear-gradient(90deg, #0EA5E9 0%, #06B6D4 100%);
+  }
+  
+  .text-gradient-alien {
+    @apply text-transparent bg-clip-text;
+    background-image: linear-gradient(90deg, #0052FF 0%, #0EA5E9 50%, #06B6D4 100%);
+  }
+  
+  .animation-delay-2000 {
+    animation-delay: 2s;
+  }
+  
+  .animation-delay-4000 {
+    animation-delay: 4s;
+  }
+  
+  @keyframes spin-slow {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  
+  .animate-spin-slow {
+    animation: spin-slow 3s linear infinite;
+  }
+
+  /* Performance mode: remove decorative animations/backgrounds */
+  body.performance-mode .apple-text,
+  body.performance-mode .shimmer,
+  body.performance-mode .animate-shimmer,
+  body.performance-mode .animate-gradient-slide,
+  body.performance-mode .launch-button:hover {
+    animation: none !important;
+    background-size: auto !important;
+  }
+}
+
+/* Density adjustments */
+body.density-compact {
+  --card-padding-sm: 0.5rem;
+  --card-padding-md: 0.75rem;
+  --card-padding-lg: 1rem;
+}
+body.density-compact table tr td,
+body.density-compact table tr th {
+  padding-top: 0.35rem !important;
+  padding-bottom: 0.35rem !important;
+}
+
+/* Custom scrollbar */
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+body::-webkit-scrollbar-track,
+*::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+body::-webkit-scrollbar-thumb,
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+body::-webkit-scrollbar-thumb:hover,
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Smooth animations */
+* {
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Better focus states */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid #0EA5E9;
+  outline-offset: 2px;
+}
+
+/* Prevent layout shift */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Better loading states */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Animated gradient for buttons */
+@keyframes gradient-slide {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes gradient-wave {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar,
+.scrollbar-hide *::-webkit-scrollbar {
+  display: none;
+}
+
+/* Apple Text Effect */
+.apple-text {
+  font-size: 4rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  position: relative;
+  display: inline-block;
+  background: linear-gradient(
+    135deg,
+    #0EA5E9 0%,
+    #0052FF 25%,
+    #06B6D4 50%,
+    #0EA5E9 75%,
+    #0052FF 100%
+  );
+  background-size: 400% 400%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: apple-gradient 8s ease infinite;
+}
+
+.apple-text::before {
+  content: attr(data-text);
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: -1;
+  background: linear-gradient(
+    135deg,
+    #0EA5E9 0%,
+    #0052FF 25%,
+    #06B6D4 50%,
+    #0EA5E9 75%,
+    #0052FF 100%
+  );
+  background-size: 400% 400%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: blur(20px);
+  opacity: 0.5;
+  animation: apple-gradient 8s ease infinite;
+}
+
+@keyframes apple-gradient {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Launch button gradient animation */
+.launch-button {
+  background: linear-gradient(to right, #0052FF, #0EA5E9);
+  background-size: 100% 100%;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
+}
+
+.launch-button:hover {
+  background: linear-gradient(115deg, #0052FF, #0EA5E9, #06B6D4, #00D4FF, #0EA5E9, #0052FF);
+  background-size: 300% 100%;
+  animation: gradient-flow 3s linear infinite;
+  box-shadow: 0 8px 25px rgba(14, 165, 233, 0.5);
+}
+
+/* Animated gradient flow for buttons */
+@keyframes gradient-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 300% 50%;
+  }
+}
+
+.animate-gradient-flow {
+  animation: gradient-flow 3s linear infinite;
+}
+
+/* Launch button with hover animation */
+.launch-button {
+  background: linear-gradient(to right, #0052FF, #0EA5E9);
+  background-size: 100% 100%;
+  transition: all 0.3s ease;
+}
+
+.launch-button:hover {
+  background: linear-gradient(115deg, #0052FF, #0EA5E9, #06B6D4, #00D4FF, #0EA5E9, #0052FF);
+  background-size: 300% 100%;
+  animation: gradient-flow 3s linear infinite;
+}
+
+.shimmer {
+  animation: shimmer 2s infinite linear;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.05) 50%, transparent 100%);
+  background-size: 1000px 100%;
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite linear;
+  background-size: 200% 100%;
+}
+
+.animate-gradient-slide {
+  animation: gradient-slide 2s linear infinite;
+}
+
+/* RainbowKit Custom Styles */
+.rainbow-button-wrapper [data-testid="rk-connect-button"] button,
+.rainbow-button-wrapper [data-testid="rk-account-button"] {
+  padding: 0.5rem 1rem !important;
+  height: auto !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 0.5rem !important;
+  transition: all 0.2s !important;
+}
+
+.rainbow-button-wrapper [data-testid="rk-connect-button"] button:hover,
+.rainbow-button-wrapper [data-testid="rk-account-button"]:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* RainbowKit - let it use its own styles, we just ensure proper centering */
+/* This should not break the layout */
+
+/* Apple Text Effect */
+.apple-text {
+  font-size: 4rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  position: relative;
+  display: inline-block;
+  background: linear-gradient(
+    135deg,
+    #0EA5E9 0%,
+    #0052FF 25%,
+    #06B6D4 50%,
+    #0EA5E9 75%,
+    #0052FF 100%
+  );
+  background-size: 400% 400%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: apple-gradient 8s ease infinite;
+}
+
+.apple-text::before {
+  content: attr(data-text);
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: -1;
+  background: linear-gradient(
+    135deg,
+    #0EA5E9 0%,
+    #0052FF 25%,
+    #06B6D4 50%,
+    #0EA5E9 75%,
+    #0052FF 100%
+  );
+  background-size: 400% 400%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: blur(20px);
+  opacity: 0.5;
+  animation: apple-gradient 8s ease infinite;
+}
+
+@keyframes apple-gradient {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Custom scrollbar for S4Labs theme */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(14, 165, 233, 0.3) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar,
+.custom-scrollbar *::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track,
+.custom-scrollbar *::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb,
+.custom-scrollbar *::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #0EA5E9, #0052FF);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover,
+.custom-scrollbar *::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #0EA5E9, #0052FF);
+  opacity: 0.8;
+}
+
+/* RainbowKit Modal Full Viewport Fix */
+[data-rk] div[style*="position: fixed"] {
+  width: 100vw !important;
+  height: 100vh !important;
+  left: 0 !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+}
+
+/* Ensure backdrop blur covers entire viewport */
+[data-rk] div[style*="backdrop-filter"] {
+  width: 100vw !important;
+  height: 100vh !important;
+  position: fixed !important;
+  inset: 0 !important;
+}

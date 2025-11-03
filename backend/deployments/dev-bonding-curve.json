@@ -1,0 +1,16 @@
+{
+  "network": "base-sepolia",
+  "contractAddress": "0xD120242C95B2334981B45e230900Cac115eF3f49",
+  "deployer": "0x33742D3feEDe42eEb82E65a0155Bd46b693A69f5",
+  "deployedAt": "2025-08-27T18:38:41.147Z",
+  "transactionHash": "0x8687be245f8f54d873a7884e9e5574c0d625872763fe640bfc66e74fafebe10e",
+  "features": {
+    "noTokenLimits": true,
+    "noCooldown": true,
+    "noBlacklist": true,
+    "noMinMaxTrades": true,
+    "noAntiMEV": true,
+    "noPausable": true,
+    "devFriendly": true
+  }
+}

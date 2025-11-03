@@ -1,0 +1,13 @@
+{
+  "network": "base-sepolia",
+  "chainId": 84532,
+  "contractName": "DevBondingCurveV2",
+  "contractAddress": "0x46eCf02772C4Bc9a5cd440FB93022d6e268355c8",
+  "deployer": "0x33742D3feEDe42eEb82E65a0155Bd46b693A69f5",
+  "deploymentDate": "2025-08-28T08:16:27.976Z",
+  "transactionHash": "0x4116a0643f5bf42affac6f4065c3c62b143cf37a03b942bc2f1b5c642b9d7c29",
+  "optimizer": {
+    "enabled": true,
+    "runs": 200
+  }
+}

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel-Art Loading Bar Test</title>
+    <style>
+        body {
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: monospace;
+        }
+        
+        .loading-container {
+            width: 320px;
+        }
+        
+        .loading-bar {
+            height: 32px;
+            background: #000;
+            border: 2px solid rgba(14, 165, 233, 0.3);
+            position: relative;
+            overflow: hidden;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+            box-shadow: 
+                inset 3px 3px 0 rgba(0,0,0,0.8),
+                inset -3px -3px 0 rgba(14,165,233,0.2),
+                0 0 20px rgba(14,165,233,0.1);
+        }
+        
+        .loading-fill {
+            height: 100%;
+            width: 75%;
+            background: linear-gradient(
+                90deg,
+                #0052FF 0%,
+                #0052FF 25%,
+                #0EA5E9 25%,
+                #0EA5E9 50%,
+                #06B6D4 50%,
+                #06B6D4 75%,
+                #0EA5E9 75%,
+                #0EA5E9 100%
+            );
+            background-size: 32px 100%;
+            animation: pixelScroll 1s linear infinite;
+            box-shadow: inset -3px 0 0 rgba(0,0,0,0.4);
+            position: relative;
+        }
+        
+        .scanline {
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent 0px,
+                transparent 3px,
+                rgba(255,255,255,0.1) 3px,
+                rgba(255,255,255,0.1) 6px
+            );
+            mix-blend-mode: overlay;
+            pointer-events: none;
+        }
+        
+        .highlight-top {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .highlight-bottom {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: rgba(0,0,0,0.4);
+        }
+        
+        @keyframes pixelScroll {
+            0% { background-position-x: 0; }
+            100% { background-position-x: 32px; }
+        }
+        
+        .percentage {
+            text-align: center;
+            margin-top: 10px;
+            color: #0EA5E9;
+            font-size: 14px;
+            text-shadow: 
+                2px 2px 0 #000,
+                -1px -1px 0 #000,
+                1px -1px 0 #000,
+                -1px 1px 0 #000,
+                1px 1px 0 #000;
+            letter-spacing: 2px;
+        }
+        
+        h1 {
+            color: #0EA5E9;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 24px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <h1>Pixel-Art Loading Bar</h1>
+        <div class="loading-container">
+            <div class="loading-bar">
+                <div class="loading-fill">
+                    <div class="scanline"></div>
+                    <div class="highlight-top"></div>
+                    <div class="highlight-bottom"></div>
+                </div>
+            </div>
+            <div class="percentage">75%</div>
+        </div>
+    </div>
+</body>
+</html>

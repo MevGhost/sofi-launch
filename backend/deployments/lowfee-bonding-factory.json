@@ -1,0 +1,21 @@
+{
+  "network": "base-sepolia",
+  "chainId": 84532,
+  "lowFeeBondingCurveFactory": "0xF1A74278e422B36c7464665981b6bb7536dcD910",
+  "creationFee": "1000000000000000",
+  "creationFeeETH": "0.001",
+  "deployedAt": "2025-08-27T09:10:02.066Z",
+  "deployer": "0x33742D3feEDe42eEb82E65a0155Bd46b693A69f5",
+  "blockNumber": 30258757,
+  "features": [
+    "Ultra-low creation fee: 0.001 ETH (95% cheaper!)",
+    "Full bonding curve with constant product AMM",
+    "Virtual reserves: 1 ETH + 1M tokens",
+    "800M tokens for bonding, 200M for DEX",
+    "Auto graduation at $69k market cap",
+    "1% platform fee + 1% creator fee on trades",
+    "Buy and sell functionality",
+    "Slippage protection",
+    "Creator fee collection"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "network": "base-sepolia",
+  "chainId": 84532,
+  "simpleTokenFactory": "0x9Ea1121c8013eDbAc57042f973956422831864eC",
+  "creationFee": "20000000000000000",
+  "deployedAt": "2025-08-27T11:45:00.000Z",
+  "deployer": "0x33742D3feEDe42eEb82E65a0155Bd46b693A69f5",
+  "blockNumber": 18945678,
+  "features": [
+    "Simple token creation with 0.02 ETH fee",
+    "No bonding curve - direct minting to creator",
+    "1 billion tokens total supply",
+    "Basic ERC20 with metadata",
+    "Simplified for testing and lower gas costs"
+  ]
+}

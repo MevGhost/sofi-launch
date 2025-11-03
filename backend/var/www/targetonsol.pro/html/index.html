@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Target - Solana Paper Trading Extension</title>
+    <meta name="description" content="Master Solana trading with Target - the ultimate paper trading extension for Chrome. Practice trading risk-free with real market data.">
+    <link rel="stylesheet" href="style.css?v=2.0">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+</head>
+<body>
+    <div class="floating-elements">
+        <div class="floating-orb"></div>
+        <div class="floating-orb"></div>
+        <div class="floating-orb"></div>
+    </div>
+    <header class="header">
+        <div class="container">
+            <div class="logo-section">
+                <img src="logo.png" alt="Target Logo" class="logo">
+                <span class="brand-name">Target</span>
+            </div>
+            <nav class="nav">
+                <a href="#features" class="nav-link">Features</a>
+                <a href="https://x.com/TargetOnSol" class="nav-link twitter-link" target="_blank">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Twitter
+                </a>
+                <a href="https://chromewebstore.google.com/detail/target-solana-paper-tradi/mnhnkmnkhgcnchfhoipblhmmljiopged" class="install-btn" target="_blank">Install Extension</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <a-hole>
+                <canvas class="js-canvas"></canvas>
+                <div class="aura"></div>
+                <div class="overlay"></div>
+            </a-hole>
+            
+            <div class="hero-content">
+                <div class="container">
+                    <h1 class="hero-title">Paper Trading for Solana</h1>
+                    <p class="hero-subtitle">Practice trading with real market data, zero risk. Master your strategies before going live.</p>
+                    <div class="hero-stats">
+                        <div class="stat-item">
+                            <span class="stat-value">Real-time</span>
+                            <span class="stat-label">Market Data</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">$0</span>
+                            <span class="stat-label">Risk</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">Free</span>
+                            <span class="stat-label">Forever</span>
+                        </div>
+                    </div>
+                    <a href="https://chromewebstore.google.com/detail/target-solana-paper-tradi/mnhnkmnkhgcnchfhoipblhmmljiopged" class="cta-button" target="_blank">
+                        Install Chrome Extension
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section id="showcase" class="showcase">
+            <div class="container">
+                <div class="showcase-header">
+                    <span class="section-badge">Live Demo</span>
+                    <h2>Target Trading Interface</h2>
+                    <p>Experience professional-grade paper trading with real Solana market data</p>
+                </div>
+                
+                <div class="showcase-content">
+                    <div class="showcase-main">
+                        <div class="interface-preview">
+                            <img src="assetshow.jpg" alt="Target Extension Interface" />
+                        </div>
+                    </div>
+                    
+                    <div class="showcase-features">
+                        <div class="feature-highlights">
+                            <div class="feature-highlight" data-tilt>
+                                <div class="highlight-icon">
+                                    <div class="icon-pulse"></div>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" stroke-width="2"/>
+                                    </svg>
+                                </div>
+                                <div class="highlight-content">
+                                    <h4>Real-time Data</h4>
+                                    <span>Live market feeds</span>
+                                </div>
+                            </div>
+                            
+                            <div class="feature-highlight" data-tilt>
+                                <div class="highlight-icon">
+                                    <div class="icon-pulse"></div>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                        <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                                        <path d="m12 1 3 3-3 3-3-3z" stroke="currentColor" stroke-width="2"/>
+                                        <path d="m12 17 3 3-3 3-3-3z" stroke="currentColor" stroke-width="2"/>
+                                        <path d="m20 12 3-3-3-3-3 3z" stroke="currentColor" stroke-width="2"/>
+                                        <path d="m4 12-3-3 3-3 3 3z" stroke="currentColor" stroke-width="2"/>
+                                    </svg>
+                                </div>
+                                <div class="highlight-content">
+                                    <h4>Zero Risk</h4>
+                                    <span>Virtual trading</span>
+                                </div>
+                            </div>
+                            
+                            <div class="feature-highlight" data-tilt>
+                                <div class="highlight-icon">
+                                    <div class="icon-pulse"></div>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                        <path d="M3 3v18h18" stroke="currentColor" stroke-width="2"/>
+                                        <path d="m19 9-5 5-4-4-5 5" stroke="currentColor" stroke-width="2"/>
+                                    </svg>
+                                </div>
+                                <div class="highlight-content">
+                                    <h4>Analytics</h4>
+                                    <span>Performance insights</span>
+                                </div>
+                            </div>
+                            
+                            <div class="feature-highlight" data-tilt>
+                                <div class="highlight-icon">
+                                    <div class="icon-pulse"></div>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                        <rect x="2" y="6" width="20" height="12" rx="2" stroke="currentColor" stroke-width="2"/>
+                                        <circle cx="12" cy="12" r="2" stroke="currentColor" stroke-width="2"/>
+                                        <path d="m4.93 19.07 2.83-2.83" stroke="currentColor" stroke-width="2"/>
+                                    </svg>
+                                </div>
+                                <div class="highlight-content">
+                                    <h4>Portfolio</h4>
+                                    <span>Asset management</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="features" class="features">
+            <div class="container">
+                <h2 class="section-title">Everything You Need to Master Trading</h2>
+                <div class="features-grid">
+                    <div class="feature-item">
+                        <h3>Paper Trading Environment</h3>
+                        <p>Practice with virtual funds while using real market data. Build confidence without financial risk.</p>
+                    </div>
+                    <div class="feature-item">
+                        <h3>Photon Platform Integration</h3>
+                        <p>Seamlessly integrated with Photon's advanced trading interface for professional-grade tools.</p>
+                    </div>
+                    <div class="feature-item">
+                        <h3>Real-Time Market Data</h3>
+                        <p>Access live Solana token prices, volume data, and market trends as they happen.</p>
+                    </div>
+                    <div class="feature-item">
+                        <h3>Portfolio Management</h3>
+                        <p>Track your virtual holdings, monitor performance, and analyze your trading strategies.</p>
+                    </div>
+                    <div class="feature-item">
+                        <h3>Quick Trade Execution</h3>
+                        <p>Execute trades instantly with our streamlined interface. Test different strategies efficiently.</p>
+                    </div>
+                    <div class="feature-item">
+                        <h3>Comprehensive Analytics</h3>
+                        <p>Detailed performance metrics, profit/loss tracking, and trading history analysis.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="benefits">
+            <div class="container">
+                <h2 class="section-title">Why Paper Trading Matters</h2>
+                <div class="benefits-grid">
+                    <div class="benefit-card">
+                        <div class="benefit-number">95%</div>
+                        <h3>Failure Rate</h3>
+                        <p>of new traders lose money in their first year. Paper trading helps you avoid becoming a statistic.</p>
+                    </div>
+                    <div class="benefit-card">
+                        <div class="benefit-number">$0</div>
+                        <h3>Learning Cost</h3>
+                        <p>Practice unlimited trades without risking real capital. Learn from mistakes without financial consequences.</p>
+                    </div>
+                    <div class="benefit-card">
+                        <div class="benefit-number">Real-time</div>
+                        <h3>Market Conditions</h3>
+                        <p>Experience actual market volatility and price movements while building your trading psychology.</p>
+                    </div>
+                </div>
+                
+                <div class="cta-section">
+                    <h2>Start Your Risk-Free Trading Journey</h2>
+                    <p>Join thousands of traders who've improved their skills with Target's paper trading platform.</p>
+                    <div class="cta-buttons">
+                        <a href="https://chromewebstore.google.com/detail/target-solana-paper-tradi/mnhnkmnkhgcnchfhoipblhmmljiopged" class="primary-btn" target="_blank">
+                            Install Target Extension
+                        </a>
+                        <a href="#showcase" class="secondary-btn">View Demo</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 Target. Built for the Solana community.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

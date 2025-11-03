@@ -1,0 +1,2 @@
+-- Create unique constraint on chain + chainEscrowId to prevent duplicates
+CREATE UNIQUE INDEX "Escrow_chain_chainEscrowId_unique" ON "Escrow"("chain", "chainEscrowId") WHERE "chainEscrowId" IS NOT NULL;

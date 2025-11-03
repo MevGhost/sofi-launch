@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Token Address Extraction</title>
+</head>
+<body>
+    <h1>Test Token Address Extraction</h1>
+    <p>Open the browser console to see the output</p>
+    
+    <script>
+    // Simulate the logs from the actual transaction
+    const mockReceipt = {
+        logs: [
+            {
+                address: "0x93a136983a836a75662593aae7ca7dc9cd0af4be",
+                topics: [
+                    "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+                    "0x0000000000000000000000000000000000000000000000000000000000000000",
+                    "0x000000000000000000000000bf8759fb6b543a518cd16cdc627269e17317b65e"
+                ],
+                data: "0x0000000000000000000000000000000000000000033b2e3c9fd0803ce8000000"
+            },
+            {
+                address: "0x93a136983a836a75662593aae7ca7dc9cd0af4be",
+                topics: [
+                    "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+                    "0x000000000000000000000000bf8759fb6b543a518cd16cdc627269e17317b65e",
+                    "0x0000000000000000000000000ebb5b96f1d4830c069c0440336f5b2f83f96bfe"
+                ],
+                data: "0x00000000000000000000000000000000000000000006e27c8e04b7d3a6cd95da"
+            },
+            {
+                address: "0xbf8759fb6b543a518cd16cdc627269e17317b65e",
+                topics: [
+                    "0x3b6fe4f0a88a6e8bb6c32f4c72c56797a816c2e2d2f088c3caf582cf09013b4f",
+                    "0x00000000000000000000000093a136983a836a75662593aae7ca7dc9cd0af4be"
+                ],
+                data: "0x000000000000000000000000000000000000000000000000002386f26fc1000000000000000000000000000000000000000000000006e27c8e04b7d3a6cd95da"
+            },
+            {
+                address: "0xbf8759fb6b543a518cd16cdc627269e17317b65e",
+                topics: [
+                    "0xf9dc7ffe088e5d0f4a918e8e0e0d3e3f17a8e63aab79e850f92b5bac0dd5bdba",
+                    "0x00000000000000000000000093a136983a836a75662593aae7ca7dc9cd0af4be",
+                    "0x0000000000000000000000000ebb5b96f1d4830c069c0440336f5b2f83f96bfe"
+                ],
+                data: "0x...long data..."
+            },
+            {
+                address: "0xbf8759fb6b543a518cd16cdc627269e17317b65e",
+                topics: [
+                    "0xe7a7250c5402797703340d2e92b10a5d08e3e7e0d6b534e3797c45e5c6473a30",
+                    "0x00000000000000000000000093a136983a836a75662593aae7ca7dc9cd0af4be",
+                    "0x0000000000000000000000000ebb5b96f1d4830c069c0440336f5b2f83f96bfe"
+                ],
+                data: "0x...long data..."
+            }
+        ]
+    };
+    
+    const factoryAddress = '0xbf8759fb6b543a518cd16cdc627269e17317b65e'.toLowerCase();
+    
+    // Method 1: Look for TokenCreated event from factory
+    console.log("=== Method 1: TokenCreated from factory ===");
+    const tokenCreatedLog = mockReceipt.logs.find(log => {
+        return log.address.toLowerCase() === factoryAddress && 
+               log.topics && 
+               log.topics.length >= 3;
+    });
+    
+    if (tokenCreatedLog) {
+        console.log("Found TokenCreated log:", tokenCreatedLog);
+        if (tokenCreatedLog.topics[1]) {
+            const tokenAddressPadded = tokenCreatedLog.topics[1];
+            const tokenAddress = '0x' + tokenAddressPadded.slice(26).toLowerCase();
+            console.log("Extracted token address from event:", tokenAddress);
+        }
+    } else {
+        console.log("No TokenCreated event found from factory");
+    }
+    
+    // Method 2: Find Transfer events (fallback)
+    console.log("\n=== Method 2: Transfer events (fallback) ===");
+    const tokenTransferLog = mockReceipt.logs.find(log => {
+        return log.address && 
+               log.address.toLowerCase() !== factoryAddress &&
+               log.address !== '0x0000000000000000000000000000000000000000' &&
+               log.topics && 
+               log.topics.length === 3;
+    });
+    
+    if (tokenTransferLog) {
+        console.log("Found Transfer log:", tokenTransferLog);
+        const tokenAddress = tokenTransferLog.address.toLowerCase();
+        console.log("Token address from Transfer event:", tokenAddress);
+    } else {
+        console.log("No Transfer event found");
+    }
+    </script>
+</body>
+</html>

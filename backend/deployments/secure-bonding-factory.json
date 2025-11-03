@@ -1,0 +1,47 @@
+{
+  "network": "base-sepolia",
+  "chainId": 84532,
+  "secureLowFeeBondingCurve": "0x4f344717f048D5b9553a8292f1c1265832537977",
+  "creationFee": "1000000000000000",
+  "creationFeeETH": "0.001",
+  "deployedAt": "2025-08-27T09:20:22.469Z",
+  "deployer": "0x33742D3feEDe42eEb82E65a0155Bd46b693A69f5",
+  "blockNumber": 30259067,
+  "securityFeatures": {
+    "antiSpam": {
+      "cooldownPeriod": "1 minute between token creations",
+      "maxTokensPerUser": "3 initially (unlocks after 1 ETH platform revenue)",
+      "minTradeAmount": "0.0001 ETH",
+      "maxTradeAmount": "10 ETH"
+    },
+    "mevProtection": {
+      "sameBlockPrevention": "Yes",
+      "maxSlippage": "5%",
+      "lastTradeBlockTracking": "Yes"
+    },
+    "safety": {
+      "pausable": "Yes - owner can pause",
+      "blacklist": "Yes - ban malicious users",
+      "liquidityLock": "1 hour initial lock",
+      "inputValidation": "Yes - name/symbol/description limits"
+    },
+    "economic": {
+      "platformFee": "1% (adjustable, max 3%)",
+      "creatorFee": "1% (adjustable, max 3%)",
+      "creatorFeeClaims": "Yes - creators can withdraw",
+      "graduationThreshold": "$69k market cap"
+    }
+  },
+  "improvements": [
+    "Prevents spam with cooldown and user limits",
+    "MEV protection with same-block prevention",
+    "Emergency pause for critical issues",
+    "Blacklist system for bad actors",
+    "1-hour initial liquidity lock",
+    "Creator fee withdrawal function",
+    "Trade size limits (0.0001 - 10 ETH)",
+    "Maximum 5% slippage protection",
+    "Volume and trade tracking",
+    "Input validation for token metadata"
+  ]
+}
