@@ -104,7 +104,7 @@ export default function HomePage() {
     { label: 'Total Value Locked', value: 4500000, prefix: '$', suffix: '', icon: <FiDatabase /> },
     { label: 'Projects Launched', value: 127, suffix: '+', icon: <FiGlobe /> },
     { label: 'Active Users', value: 8400, suffix: '+', icon: <FiUsers /> },
-    { label: 'ALB Staked', value: 2800000, suffix: '', icon: <FiLock /> },
+    { label: 'SOL Staked', value: 2800000, suffix: '', icon: <FiLock /> },
   ];
 
   // Trust badges
@@ -135,8 +135,8 @@ export default function HomePage() {
     },
     {
       icon: <FiPercent className="w-6 h-6" />,
-      title: 'ALB Benefits',
-      description: '50% discount on all platform fees when paying with ALB tokens. Stack rewards for extra benefits.'
+      title: 'SOL Benefits',
+      description: '50% discount on all platform fees when paying with SOL tokens. Stack rewards for extra benefits.'
     },
     {
       icon: <FiStar className="w-6 h-6" />,
@@ -168,7 +168,7 @@ export default function HomePage() {
     },
     {
       icon: <FiPieChart className="w-6 h-6" />,
-      title: 'ALB Rewards',
+      title: 'SOL Rewards',
       description: 'Earn bonus allocation in IDOs when staking ALB. Higher tiers unlock exclusive launches.'
     },
     {
@@ -179,7 +179,7 @@ export default function HomePage() {
     {
       icon: <FiUsers className="w-6 h-6" />,
       title: 'Community Governance',
-      description: 'Vote on featured projects with ALB tokens. Shape the platform\'s future direction.'
+      description: 'Vote on featured projects with SOL tokens. Shape the platform\'s future direction.'
     },
   ];
 
@@ -189,7 +189,7 @@ export default function HomePage() {
   const faqItems = [
     {
       question: 'How much does it cost to launch a token?',
-      answer: 'Token creation costs approximately 0.01 ETH in gas fees on Base L2. Platform fees are 2% of funds raised (1% with ALB payment). There are no upfront costs or hidden fees.'
+      answer: 'Token creation costs approximately 0.01 SOL in gas fees on Solana. Platform fees are 2% of funds raised (1% with SOL payment). There are no upfront costs or hidden fees.'
     },
     {
       question: 'What is a bonding curve?',
@@ -197,11 +197,11 @@ export default function HomePage() {
     },
     {
       question: 'How does graduation to DEX work?',
-      answer: 'When your token reaches $69,000 market cap, it automatically graduates to BaseSwap/Uniswap. S4Labs adds $12,000 in liquidity and burns the LP tokens, ensuring permanent liquidity.'
+      answer: 'When your token reaches $69,000 market cap, it automatically graduates to Raydium/Orca. SoFi Launch adds $12,000 in liquidity and burns the LP tokens, ensuring permanent liquidity.'
     },
     {
-      question: 'What are the benefits of using ALB tokens?',
-      answer: 'ALB holders get 50% discount on platform fees, guaranteed allocations in IDOs, governance voting rights, revenue sharing from platform fees, and access to exclusive launches.'
+      question: 'What are the benefits of using SOL tokens?',
+      answer: 'SOL holders get 50% discount on platform fees, guaranteed allocations in IDOs, governance voting rights, revenue sharing from platform fees, and access to exclusive launches.'
     },
     {
       question: 'How does the escrow system work?',
@@ -209,7 +209,7 @@ export default function HomePage() {
     },
     {
       question: 'What chains are supported?',
-      answer: 'Currently, S4Labs operates on Base L2 and AlienBase. Multi-chain support for Ethereum mainnet, BSC, and Arbitrum is coming soon.'
+      answer: 'Currently, SoFi Launch operates on Solana and AlienBase. Multi-chain support for Ethereum mainnet, BSC, and Arbitrum is coming soon.'
     },
     {
       question: 'How are projects vetted?',
@@ -338,7 +338,7 @@ export default function HomePage() {
             <Link href="/" className="group">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-black/50 backdrop-blur-sm border border-white/10 rounded-md flex items-center justify-center transition-all group-hover:scale-110 group-hover:border-[#0EA5E9]/50">
-                  <span className="text-white font-bold text-sm font-display">S4</span>
+                  <span className="text-white font-bold text-sm font-display">SoFi</span>
                 </div>
                 <span className="text-white/80 text-sm hidden sm:block">Token Launchpad</span>
               </div>
@@ -378,7 +378,7 @@ export default function HomePage() {
                 className="inline-flex items-center gap-2 px-3 py-1 bg-[#0EA5E9]/10 border border-[#0EA5E9]/20 rounded-full text-xs text-[#0EA5E9] mb-6"
               >
                 <span className="w-2 h-2 bg-[#0EA5E9] rounded-full animate-pulse" />
-                Powered by Base L2 & AlienBase
+                Powered by Solana
               </motion.div>
 
               <motion.h1 
@@ -388,7 +388,7 @@ export default function HomePage() {
                 className="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold mb-6 apple-text font-display"
               >
                 Launch Your Token<br/>
-                <span className="text-[#0EA5E9]">on Base L2</span>
+                <span className="text-[#0EA5E9]">on Solana</span>
               </motion.h1>
               
               <motion.p 
@@ -476,7 +476,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Why S4Labs - Tabbed Section */}
+      {/* Why SoFi Launch - Tabbed Section */}
       <section className="relative py-20 px-4 z-10">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
@@ -484,7 +484,7 @@ export default function HomePage() {
               Built for Everyone in DeFi
             </h2>
             <p className="text-lg text-white/70 max-w-2xl mx-auto mb-8">
-              Whether you\'re launching a project or seeking opportunities, S4Labs provides the tools you need
+              Whether you\'re launching a project or seeking opportunities, SoFi Launch provides the tools you need
             </p>
             
             {/* Tab Switcher */}
@@ -553,7 +553,7 @@ export default function HomePage() {
               Live Platform Activity
             </h2>
             <p className="text-lg text-white/70 max-w-2xl mx-auto">
-              Real-time updates from the S4Labs ecosystem
+              Real-time updates from the SoFi Launch ecosystem
             </p>
           </div>
 
@@ -646,7 +646,7 @@ export default function HomePage() {
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-white/50">Launches in {launch.launch}</span>
                       <span className="text-white/50">Target: {launch.target}</span>
-                      <span className="text-[#0EA5E9]">ALB Bonus: {launch.albBonus}</span>
+                      <span className="text-[#0EA5E9]">SOL Bonus: {launch.albBonus}</span>
                     </div>
                   </div>
                 ))}
@@ -667,7 +667,7 @@ export default function HomePage() {
               Frequently Asked Questions
             </h2>
             <p className="text-lg text-white/70">
-              Everything you need to know about S4Labs
+              Everything you need to know about SoFi Launch
             </p>
           </div>
 
@@ -722,7 +722,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-start gap-16">
             {/* Logo */}
-            <Link href="/" className="group" aria-label="Return to S4 Labs Homepage">
+            <Link href="/" className="group" aria-label="Return to SoFi Launch Homepage">
               <div className="w-10 h-10 bg-black border border-white/10 rounded-md flex items-center justify-center transition-all group-hover:scale-110 group-hover:border-[#0EA5E9]/50 relative overflow-hidden">
                 <span className="text-white font-bold text-sm font-display tracking-wider">S4</span>
                 {/* Blue accent */}
@@ -739,10 +739,10 @@ export default function HomePage() {
             <div className="flex flex-col md:flex-row gap-16 md:gap-32 flex-1">
               <div className="flex flex-col gap-5 max-w-2xl">
                 <p className="text-[10px] uppercase text-white/40 tracking-wider">
-                  © 2025 S4 Labs. All rights reserved.
+                  © 2025 SoFi Launch. All rights reserved.
                 </p>
                 <p className="text-[10px] uppercase text-white/40 leading-relaxed">
-                  S4 Labs is dedicated to enhancing the trading experience on DeFi by offering a CEX-like interface combined with the privacy benefits of decentralized finance. S4 Labs is developed and managed independently of the Coinbase / Base team
+                  SoFi Launch is dedicated to enhancing the trading experience on DeFi by offering a CEX-like interface combined with the privacy benefits of decentralized finance. SoFi Launch is developed and managed independently of the Coinbase / Base team
                 </p>
                 <div className="flex gap-8 mt-2">
                   <Link href="/privacy" className="text-[10px] uppercase text-white/60 hover:text-white transition-colors">

@@ -74,7 +74,7 @@ const STEPS = [
   {
     id: 'welcome',
     title: 'Welcome',
-    subtitle: 'Launch your token on Base L2',
+    subtitle: 'Launch your token on Solana',
     icon: <FaRocket size={24} />,
   },
   {
@@ -368,7 +368,7 @@ export default function NewTokenPage() {
                     {currentStep === 0 && (
                       <div className="py-12">
                         <h3 className="text-2xl font-bold text-text-primary mb-4 text-center">
-                          Launch Your Token on Base L2
+                          Launch Your Token on Solana
                         </h3>
                         <p className="text-text-secondary mb-10 max-w-xl mx-auto text-center">
                           Create and launch your token with our bonding curve mechanism. 

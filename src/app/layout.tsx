@@ -34,7 +34,7 @@ export const viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL('https://s4labs.xyz'),
   title: {
-    default: 'S4 Labs - Token Launchpad on Base L2',
+    default: 'SoFi Launch - Token Launchpad on Solana',
     template: '%s | S4 Labs'
   },
   description: 'The premier token launchpad on Base L2. Launch your token, build your community, and reach new heights.',
@@ -56,7 +56,7 @@ export const metadata: Metadata = {
     title: 'S4 Labs'
   },
   openGraph: {
-    title: 'S4 Labs - Token Launchpad',
+    title: 'SoFi Launch - Token Launchpad',
     description: 'Launch and trade tokens on Base L2. Powered by S4 Labs.',
     url: 'https://s4labs.xyz',
     siteName: 'S4Labs',
