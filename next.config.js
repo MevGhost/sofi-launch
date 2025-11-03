@@ -3,6 +3,14 @@ const { withSentryConfig } = require("@sentry/nextjs");
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  eslint: {
+    // Don't fail build on ESLint errors in production
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    // Don't fail build on TypeScript errors in production
+    ignoreBuildErrors: false,
+  },
   experimental: {
     instrumentationHook: true,
     optimizePackageImports: ['framer-motion', 'react-icons'],

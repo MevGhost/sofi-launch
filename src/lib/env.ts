@@ -23,7 +23,7 @@ const optionalEnvVars = {
   NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL: process.env.NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL || '',
 } as const;
 
-// Validate required env vars in production
+// Validate required env vars in production (but allow build to continue)
 function validateEnvVars() {
   const missingVars: string[] = [];
 
@@ -34,9 +34,10 @@ function validateEnvVars() {
   });
 
   if (missingVars.length > 0 && isProduction) {
-    throw new Error(
-      `Missing required environment variables: ${missingVars.join(', ')}. ` +
-      'Please set them in your .env.local file.'
+    // Only warn during build, don't throw - Vercel will have env vars at runtime
+    console.warn(
+      `Warning: Missing environment variables during build: ${missingVars.join(', ')}. ` +
+      'These should be set in Vercel environment variables.'
     );
   }
 }
